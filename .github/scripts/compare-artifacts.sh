@@ -68,8 +68,16 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # 1. build-main ブランチの作成・更新
   echo "Creating/updating branch: $MAIN_BRANCH"
-  git fetch origin "$MAIN_BRANCH" 2>/dev/null || true
-  git checkout -B "$MAIN_BRANCH"
+  git fetch origin
+
+  # リモートブランチが存在するか確認
+  if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
+    echo "Remote branch exists, checking out from origin"
+    git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
+  else
+    echo "Remote branch does not exist, creating new branch"
+    git checkout -b "$MAIN_BRANCH"
+  fi
 
   # mainのアーティファクトをコピー
   rm -rf ./* .next 2>/dev/null || true
@@ -85,8 +93,15 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # 2. build-pr ブランチの作成・更新
   echo "Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
-  git fetch origin "$PR_BRANCH" 2>/dev/null || true
-  git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
+
+  # リモートのPRブランチが存在するか確認
+  if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
+    echo "Remote PR branch exists, checking out from origin"
+    git checkout -B "$PR_BRANCH" "origin/$PR_BRANCH"
+  else
+    echo "Remote PR branch does not exist, creating from $MAIN_BRANCH"
+    git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
+  fi
 
   # PRのアーティファクトをコピー
   rm -rf ./* .next 2>/dev/null || true
