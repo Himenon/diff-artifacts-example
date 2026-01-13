@@ -64,160 +64,19 @@ jobs:
         id: compare
         if: steps.download_main.outcome == 'success'
         env:
+          COMMENT_MARKER: ${{ env.COMMENT_MARKER }}
+          BASE_SHA_SHORT: ${{ steps.base_info.outputs.sha_short }}
+          PR_SHA: ${{ inputs.pr_sha }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "$COMMENT_MARKER" > report.md
-          echo "### 🛠 Build Artifacts Diff" >> report.md
-          echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
-          echo "" >> report.md
-
-          # ファイルレベルの差分を取得
-          diff -rq .next-base .next-pr > diff_result.txt || true
-
-          if [ -s diff_result.txt ]; then
-            echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
-
-            # 統計情報を収集
-            ADDED=$(grep "Only in .next-pr" diff_result.txt | wc -l)
-            REMOVED=$(grep "Only in .next-base" diff_result.txt | wc -l)
-            MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l)
-
-            # 完全な差分を生成（diff-viewer用）
-            echo "# Build Artifacts Diff" > full_diff.md
-            echo "" >> full_diff.md
-            echo "**Repository**: ${{ github.repository }}" >> full_diff.md
-            echo "**PR**: #${{ github.event.pull_request.number }}" >> full_diff.md
-            echo "**Base**: \`main\` (${{ steps.base_info.outputs.sha_short }})" >> full_diff.md
-            echo "**Head**: \`PR\` (${{ inputs.pr_sha }})" >> full_diff.md
-            echo "" >> full_diff.md
-            echo "## Summary" >> full_diff.md
-            echo "- Added: $ADDED files" >> full_diff.md
-            echo "- Removed: $REMOVED files" >> full_diff.md
-            echo "- Modified: $MODIFIED files" >> full_diff.md
-            echo "" >> full_diff.md
-
-            # Modified Filesの完全な差分
-            if [ $MODIFIED -gt 0 ]; then
-              echo "## Modified Files" >> full_diff.md
-              grep "Files .* differ" diff_result.txt | while IFS= read -r line; do
-                FILE1=$(echo "$line" | sed 's/Files \(.*\) and .* differ/\1/')
-                FILE2=$(echo "$line" | sed 's/Files .* and \(.*\) differ/\1/')
-                FILENAME=$(echo "$FILE2" | sed 's|.next-pr/||')
-
-                echo "" >> full_diff.md
-                echo "### $FILENAME" >> full_diff.md
-                echo "\`\`\`diff" >> full_diff.md
-                diff -u "$FILE1" "$FILE2" 2>/dev/null | sed 's|.next-base/||g; s|.next-pr/||g' >> full_diff.md || echo "Binary file or diff failed" >> full_diff.md
-                echo "\`\`\`" >> full_diff.md
-              done
-            fi
-
-            # diff-viewerリポジトリにプッシュ
-            DIFF_VIEWER_REPO="Himenon/compare-action-diff-viewer"
-            BRANCH_NAME="pr-${{ github.event.pull_request.number }}-${{ inputs.pr_sha }}"
-
-            git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.git" diff-viewer
-            cd diff-viewer
-            git checkout -b "$BRANCH_NAME" || git checkout "$BRANCH_NAME"
-
-            mkdir -p diffs
-            cp ../full_diff.md "diffs/pr-${{ github.event.pull_request.number }}-${{ inputs.pr_sha }}.md"
-
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add .
-            git commit -m "Add diff for PR #${{ github.event.pull_request.number }} (${{ inputs.pr_sha }})" || true
-            git push -f origin "$BRANCH_NAME"
-
-            cd ..
-
-            # GitHubのファイルURLを生成
-            DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/blob/${BRANCH_NAME}/diffs/pr-${{ github.event.pull_request.number }}-${{ inputs.pr_sha }}.md"
-            echo "DIFF_URL=$DIFF_URL" >> $GITHUB_OUTPUT
-
-            # サマリーを出力
-            echo "#### Summary" >> report.md
-            echo "- 🟢 Added: $ADDED files" >> report.md
-            echo "- 🔴 Removed: $REMOVED files" >> report.md
-            echo "- 🟡 Modified: $MODIFIED files" >> report.md
-            echo "" >> report.md
-            echo "📊 [View Full Diff]($DIFF_URL)" >> report.md
-            echo "" >> report.md
-
-            # Modified Filesの詳細
-            if [ $MODIFIED -gt 0 ]; then
-              echo "#### 🟡 Modified Files" >> report.md
-              COUNT=0
-              MAX_FILES=10
-              grep "Files .* differ" diff_result.txt | head -n $MAX_FILES | while IFS= read -r line; do
-                FILE1=$(echo "$line" | sed 's/Files \(.*\) and .* differ/\1/')
-                FILE2=$(echo "$line" | sed 's/Files .* and \(.*\) differ/\1/')
-                FILENAME=$(echo "$FILE2" | sed 's|.next-pr/||')
-
-                echo "<details><summary><code>$FILENAME</code></summary>" >> report.md
-                echo "" >> report.md
-                echo "\`\`\`diff" >> report.md
-                diff -u "$FILE1" "$FILE2" 2>/dev/null | sed 's|.next-base/||g; s|.next-pr/||g' | head -n 100 >> report.md || echo "Binary files differ or file too large" >> report.md
-                echo "\`\`\`" >> report.md
-                echo "</details>" >> report.md
-                echo "" >> report.md
-                COUNT=$((COUNT + 1))
-              done
-              if [ $MODIFIED -gt $MAX_FILES ]; then
-                echo "_... and $((MODIFIED - MAX_FILES)) more modified files_" >> report.md
-                echo "" >> report.md
-              fi
-            fi
-
-            # Added Filesの詳細
-            if [ $ADDED -gt 0 ]; then
-              echo "#### 🟢 Added Files" >> report.md
-              MAX_ADDED=20
-              COUNT=0
-              grep "Only in .next-pr" diff_result.txt | head -n $MAX_ADDED | while IFS= read -r line; do
-                DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-pr||')
-                FILE=$(echo "$line" | sed 's/Only in .*: //')
-                FULLPATH=".next-pr${DIR}/${FILE}"
-                FILEPATH="${DIR}/${FILE}"
-
-                if [ -f "$FULLPATH" ]; then
-                  SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
-                  echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
-                fi
-                COUNT=$((COUNT + 1))
-              done
-              if [ $ADDED -gt $MAX_ADDED ]; then
-                echo "_... and $((ADDED - MAX_ADDED)) more added files_" >> report.md
-              fi
-              echo "" >> report.md
-            fi
-
-            # Removed Filesの詳細
-            if [ $REMOVED -gt 0 ]; then
-              echo "#### 🔴 Removed Files" >> report.md
-              MAX_REMOVED=20
-              COUNT=0
-              grep "Only in .next-base" diff_result.txt | head -n $MAX_REMOVED | while IFS= read -r line; do
-                DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-base||')
-                FILE=$(echo "$line" | sed 's/Only in .*: //')
-                FULLPATH=".next-base${DIR}/${FILE}"
-                FILEPATH="${DIR}/${FILE}"
-
-                if [ -f "$FULLPATH" ]; then
-                  SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
-                  echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
-                fi
-                COUNT=$((COUNT + 1))
-              done
-              if [ $REMOVED -gt $MAX_REMOVED ]; then
-                echo "_... and $((REMOVED - MAX_REMOVED)) more removed files_" >> report.md
-              fi
-              echo "" >> report.md
-            fi
-          else
-            echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
-            echo "✅ No changes detected." >> report.md
-          fi
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
+          BASE_DIR: .next-base
+          PR_DIR: .next-pr
+          MAX_MODIFIED_FILES: "10"
+          MAX_ADDED_FILES: "20"
+          MAX_REMOVED_FILES: "20"
+        run: ./.github/scripts/compare-artifacts.sh
 
       # 6. コメント投稿（上書き）
       - name: Post Comment
