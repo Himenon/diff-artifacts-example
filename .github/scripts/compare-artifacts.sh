@@ -22,10 +22,18 @@ echo "Starting artifact comparison..."
 echo "Base: $BASE_SHA_SHORT, PR: $PR_SHA"
 
 # レポートファイルの初期化
+# コミットURLとcompare URLを生成
+BASE_COMMIT_URL="https://github.com/${GITHUB_REPOSITORY}/commit/${BASE_SHA_SHORT}"
+HEAD_COMMIT_URL="https://github.com/${GITHUB_REPOSITORY}/commit/${PR_SHA}"
+COMPARE_URL="https://github.com/${GITHUB_REPOSITORY}/compare/${BASE_SHA_SHORT}...${PR_SHA}"
+
 cat > report.md <<EOF
 $COMMENT_MARKER
 ### 🛠 Build Artifacts Diff
-Comparing \`main\` ($BASE_SHA_SHORT) vs \`PR\` ($PR_SHA)
+
+**Base**: [\`main@${BASE_SHA_SHORT}\`](${BASE_COMMIT_URL})
+**Head**: [\`PR@${PR_SHA}\`](${HEAD_COMMIT_URL})
+**Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
 
 EOF
 
@@ -72,7 +80,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "No changes in main branch artifacts"
   else
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
-    git push -f origin "$MAIN_BRANCH"
+    git push origin "$MAIN_BRANCH"
   fi
 
   # 2. build-pr ブランチの作成・更新
@@ -90,7 +98,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     HAS_CHANGES=false
   else
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
-    git push -f origin "$PR_BRANCH"
+    git push origin "$PR_BRANCH"
     HAS_CHANGES=true
   fi
 
@@ -101,12 +109,14 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "Creating or updating Pull Request..."
 
     # PR本文の作成
+    SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
     PR_BODY="# Build Artifacts Diff
 
-**Repository**: ${GITHUB_REPOSITORY}
-**PR**: #${PR_NUMBER}
-**Base**: \`main\` (${BASE_SHA_SHORT})
-**Head**: \`PR\` (${PR_SHA})
+**Repository**: [${GITHUB_REPOSITORY}](https://github.com/${GITHUB_REPOSITORY})
+**PR**: [#${PR_NUMBER}](${SOURCE_PR_URL})
+**Base**: [\`main@${BASE_SHA_SHORT}\`](${BASE_COMMIT_URL})
+**Head**: [\`PR@${PR_SHA}\`](${HEAD_COMMIT_URL})
+**Source Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
 
 ## Summary
 - 🟢 Added: $ADDED files
