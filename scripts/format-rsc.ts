@@ -11,7 +11,8 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { globSync } from 'glob';
-import { createFlightResponse, processStringChunk, processBinaryChunk } from '@rsc-parser/react-client';
+import { createFlightResponse, processStringChunk } from '@rsc-parser/react-client';
+import dedent from 'dedent';
 
 interface ChunkData {
   index: number;
@@ -87,59 +88,8 @@ function parseRscFile(filePath: string): ChunkData[] {
   return chunks;
 }
 
-function parseRscFileBinary(filePath: string): ChunkData[] {
-  console.log(`\nParsing RSC file (binary mode): ${filePath}`);
 
-  // Read file as binary
-  const buffer = readFileSync(filePath);
-
-  // Create Flight Response (true = development mode)
-  const flightResponse = createFlightResponse(true);
-
-  // Process as binary chunk
-  processBinaryChunk(flightResponse, buffer);
-
-  // Convert chunks to serializable format
-  const chunks: ChunkData[] = [];
-
-  flightResponse._chunks.forEach((chunk: any, index: number) => {
-    const chunkData: ChunkData = {
-      index: index + 1,
-      type: chunk.type,
-      id: chunk.id,
-      timestamp: chunk.timestamp,
-    };
-
-    if (chunk.type === 'module') {
-      chunkData.value = {
-        id: chunk.value.id,
-        name: chunk.value.name,
-        chunks: chunk.value.chunks,
-      };
-    } else if (chunk.type === 'model') {
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'text') {
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'hint') {
-      chunkData.code = chunk.code;
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'errorDev' || chunk.type === 'errorProd') {
-      chunkData.error = {
-        message: chunk.error.message,
-        digest: chunk.error.digest,
-        stack: chunk.error.stack,
-      };
-    } else {
-      chunkData.originalValue = chunk.originalValue;
-    }
-
-    chunks.push(chunkData);
-  });
-
-  return chunks;
-}
-
-function formatAndSave(inputPath: string, useBinary: boolean = false, quiet: boolean = false): { success: boolean; error?: string } {
+function formatAndSave(inputPath: string, quiet: boolean = false): { success: boolean; error?: string } {
   const outputPath = `${inputPath}.json`;
 
   if (!quiet) {
@@ -148,7 +98,7 @@ function formatAndSave(inputPath: string, useBinary: boolean = false, quiet: boo
 
   try {
     // Parse the RSC file
-    const chunks = useBinary ? parseRscFileBinary(inputPath) : parseRscFile(inputPath);
+    const chunks = parseRscFile(inputPath);
 
     // Create output JSON
     const output = {
@@ -157,7 +107,6 @@ function formatAndSave(inputPath: string, useBinary: boolean = false, quiet: boo
         outputFile: outputPath,
         timestamp: new Date().toISOString(),
         chunkCount: chunks.length,
-        mode: useBinary ? 'binary' : 'text',
       },
       chunks,
     };
@@ -179,7 +128,7 @@ function formatAndSave(inputPath: string, useBinary: boolean = false, quiet: boo
   }
 }
 
-function processGlobPattern(pattern: string, useBinary: boolean = false): void {
+function processGlobPattern(pattern: string): void {
   console.log(`\nSearching for files matching: ${pattern}`);
 
   // Find all matching files
@@ -201,7 +150,7 @@ function processGlobPattern(pattern: string, useBinary: boolean = false): void {
 
   files.forEach((file, index) => {
     console.log(`[${index + 1}/${files.length}] ${file}`);
-    const result = formatAndSave(file, useBinary, true);
+    const result = formatAndSave(file, true);
 
     if (result.success) {
       successCount++;
@@ -213,12 +162,15 @@ function processGlobPattern(pattern: string, useBinary: boolean = false): void {
   });
 
   // Summary
-  console.log(`\n${'='.repeat(50)}`);
-  console.log(`Summary:`);
-  console.log(`  Total:   ${files.length}`);
-  console.log(`  Success: ${successCount}`);
-  console.log(`  Failed:  ${failCount}`);
-  console.log(`${'='.repeat(50)}\n`);
+  console.log(dedent`
+
+    ${'='.repeat(50)}
+    Summary:
+      Total:   ${files.length}
+      Success: ${successCount}
+      Failed:  ${failCount}
+    ${'='.repeat(50)}
+  `);
 
   if (failCount > 0) {
     process.exit(1);
@@ -229,25 +181,25 @@ function processGlobPattern(pattern: string, useBinary: boolean = false): void {
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error('Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern> [--binary]');
-  console.error('\nExamples:');
-  console.error('  Single file:');
-  console.error('    tsx scripts/format-rsc.ts input.rsc');
-  console.error('    tsx scripts/format-rsc.ts input.rsc --binary');
-  console.error('');
-  console.error('  Multiple files (glob):');
-  console.error('    tsx scripts/format-rsc.ts "**/*.rsc"');
-  console.error('    tsx scripts/format-rsc.ts ".next/**/*.rsc"');
-  console.error('    tsx scripts/format-rsc.ts ".next/server/app/**/*.rsc"');
-  console.error('');
-  console.error('Output:');
-  console.error('  Creates .rsc.json files next to each input file');
-  console.error('  (e.g., input.rsc → input.rsc.json)');
+  console.error(dedent`
+    Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern>
+
+    Examples:
+      Single file:
+        tsx scripts/format-rsc.ts input.rsc
+
+      Multiple files (glob):
+        tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
+        tsx scripts/format-rsc.ts "artifacts/*.rsc"
+
+    Output:
+      Creates .rsc.json files next to each input file
+      (e.g., input.rsc → input.rsc.json)
+  `);
   process.exit(1);
 }
 
 const pattern = args[0];
-const useBinary = args.includes('--binary');
 
 try {
   // Check if pattern contains glob special characters
@@ -255,11 +207,11 @@ try {
 
   if (isGlob) {
     // Process multiple files using glob pattern
-    processGlobPattern(pattern, useBinary);
+    processGlobPattern(pattern);
   } else {
     // Process single file
     console.log(`\nProcessing single file: ${pattern}`);
-    const result = formatAndSave(pattern, useBinary);
+    const result = formatAndSave(pattern);
 
     if (!result.success) {
       console.error(`\n✗ Error: ${result.error}`);
