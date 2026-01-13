@@ -40,7 +40,7 @@ jobs:
       - name: Download PR Artifact
         uses: actions/download-artifact@v7
         with:
-          name: build-${{ inputs.pr_sha }}
+          name: build-pr-${{ inputs.pr_sha }}
           path: .next-pr
 
       # 4. 比較

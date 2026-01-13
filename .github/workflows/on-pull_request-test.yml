@@ -33,7 +33,7 @@ jobs:
       - name: Upload build directory
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ steps.vars.outputs.sha_short }}
+          name: build-pr-${{ steps.vars.outputs.sha_short }}
           path: .next
           if-no-files-found: error
           include-hidden-files: true
