@@ -1,4 +1,4 @@
-name: Build
+name: Build and Compare Artifacts on Pull Request
 
 on:
   pull_request:
@@ -7,7 +7,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -29,10 +30,21 @@ jobs:
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      - name: Upload build directory
+      - name: "Upload build directory: build-pr-${{ steps.vars.outputs.sha_short }}"
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ steps.vars.outputs.sha_short }}
+          name: build-pr-${{ steps.vars.outputs.sha_short }}
           path: .next
           if-no-files-found: error
           include-hidden-files: true
+  # ここで別ファイルのワークフローを呼び出す
+  call-diff:
+    needs: build
+    uses: ./.github/workflows/_compare-artifact.yml
+    permissions:
+      pull-requests: write
+      contents: read
+      actions: read
+    with:
+      pr_sha: ${{ needs.build.outputs.sha_short }}
+      base_ref: ${{ github.base_ref }}
