@@ -79,7 +79,7 @@ jobs:
         run: ./.github/scripts/compare-artifacts.sh
 
       # 6. コメント投稿（上書き）
-      - name: Post Comment
+      - name: Post Comment 2
         if: steps.compare.outputs.HAS_DIFF == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
