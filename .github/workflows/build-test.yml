@@ -40,3 +40,11 @@ jobs:
       - name: Build & Test
         run: |
           pnpm build
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: ディレクトリをアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ steps.vars.outputs.sha_short }}
+          path: .next
