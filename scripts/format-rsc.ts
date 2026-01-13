@@ -4,9 +4,8 @@
  * Converts .rsc files to human-readable .rsc.json format
  *
  * Usage:
- *   tsx scripts/format-rsc.ts path/to/file.rsc
- *   tsx scripts/format-rsc.ts "glob-pattern"
- *   tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
+ *   pnpm exec node scripts/format-rsc.ts path/to/file.rsc
+ *   pnpm exec node scripts/format-rsc.ts "glob-pattern"
  */
 
 import {
@@ -202,7 +201,11 @@ function processGlobPattern(pattern: string): void {
     return;
   }
 
-  console.log(`Processing ${files.length} file(s)...`);
+  console.log(`Processing ${files.length} file(s):`);
+  files.forEach((file) => {
+    console.log(`  - ${file}`);
+  });
+  console.log('');
 
   // Process each file
   let successCount = 0;
@@ -219,17 +222,6 @@ function processGlobPattern(pattern: string): void {
       failedFiles.push(`${file}: ${result.error}`);
     }
   });
-
-  // Summary
-  console.log(dedent`
-
-    ${'='.repeat(50)}
-    Summary:
-      Total:   ${files.length}
-      Success: ${successCount}
-      Failed:  ${failCount}
-    ${'='.repeat(50)}
-  `);
 
   if (failCount > 0) {
     console.error('\nFailed files:');
