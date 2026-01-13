@@ -27,23 +27,36 @@ jobs:
           SHA=$(git rev-parse origin/${{ inputs.base_ref }})
           echo "sha_short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # 2. MainのArtifactをダウンロード
+      # 2. Mainブランチの最新のワークフロー実行IDを取得
+      - name: Get main branch workflow run ID
+        id: main_run
+        continue-on-error: true
+        run: |
+          RUN_ID=$(gh run list --branch ${{ inputs.base_ref }} --workflow on-push-main.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # 3. MainのArtifactをダウンロード
       - name: Download Main Artifact
         id: download_main
+        if: steps.main_run.outputs.run_id != ''
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: build-main-${{ steps.base_info.outputs.sha_short }}
           path: .next-base
+          run-id: ${{ steps.main_run.outputs.run_id }}
+          github-token: ${{ github.token }}
 
-      # 3. 現在のPRのArtifactをダウンロード
+      # 4. 現在のPRのArtifactをダウンロード
       - name: "Download PR Artifact: build-pr-${{ inputs.pr_sha }}"
         uses: actions/download-artifact@v7
         with:
           name: build-pr-${{ inputs.pr_sha }}
           path: .next-pr
 
-      # 4. 比較
+      # 5. 比較
       - name: Compare Artifacts
         id: compare
         if: steps.download_main.outcome == 'success'
@@ -62,7 +75,7 @@ jobs:
             echo "No directory structure changes detected." >> report.md
           fi
 
-      # 5. コメント投稿
+      # 6. コメント投稿
       - name: Post Comment
         if: steps.compare.outputs.HAS_DIFF == 'true'
         uses: mshick/add-pr-comment@v2
