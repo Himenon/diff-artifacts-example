@@ -2,7 +2,7 @@ pre-commit:
   jobs:
     - name: biome-lint
       glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
-      run: pnpm exec lint
+      run: pnpm run lint:fix
       stage_fixed: true
     - name: sort package json
       glob: 'package.json'
