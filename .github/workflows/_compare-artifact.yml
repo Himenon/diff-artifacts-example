@@ -37,7 +37,7 @@ jobs:
           path: .next-base
 
       # 3. 現在のPRのArtifactをダウンロード
-      - name: Download PR Artifact
+      - name: "Download PR Artifact: build-pr-${{ inputs.pr_sha }}"
         uses: actions/download-artifact@v7
         with:
           name: build-pr-${{ inputs.pr_sha }}
