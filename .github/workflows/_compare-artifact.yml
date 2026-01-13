@@ -1,0 +1,70 @@
+name: "Reusable Diff Logic"
+
+on:
+  workflow_call:
+    inputs:
+      pr_sha:
+        required: true
+        type: string
+      base_ref:
+        required: true
+        type: string
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Mainブランチの最新コミットハッシュ取得
+      - name: Get base branch SHA
+        id: base_info
+        run: |
+          SHA=$(git rev-parse origin/${{ inputs.base_ref }})
+          echo "sha_short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      # 2. MainのArtifactをダウンロード
+      - name: Download Main Artifact
+        id: download_main
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: build-main-${{ steps.base_info.outputs.sha_short }}
+          path: .next-base
+
+      # 3. 現在のPRのArtifactをダウンロード
+      - name: Download PR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ inputs.pr_sha }}
+          path: .next-pr
+
+      # 4. 比較
+      - name: Compare Artifacts
+        id: compare
+        if: steps.download_main.outcome == 'success'
+        run: |
+          echo "### 🛠 Build Artifacts Diff" > report.md
+          echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
+          diff -rq .next-base .next-pr > diff_result.txt || true
+          
+          if [ -s diff_result.txt ]; then
+            echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> report.md
+            cat diff_result.txt | head -n 30 >> report.md
+            echo "\`\`\`" >> report.md
+          else
+            echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
+            echo "No directory structure changes detected." >> report.md
+          fi
+
+      # 5. コメント投稿
+      - name: Post Comment
+        if: steps.compare.outputs.HAS_DIFF == 'true'
+        uses: mshick/add-pr-comment@v2
+        with:
+          message-path: report.md

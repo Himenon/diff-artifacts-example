@@ -7,7 +7,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -36,3 +37,10 @@ jobs:
           path: .next
           if-no-files-found: error
           include-hidden-files: true
+  # ここで別ファイルのワークフローを呼び出す
+  call-diff:
+    needs: build
+    uses: ./.github/workflows/_compare-artifact.yml
+    with:
+      pr_sha: ${{ needs.build.outputs.sha_short }}
+      base_ref: ${{ github.base_ref }}
