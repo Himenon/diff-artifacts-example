@@ -37,15 +37,13 @@ jobs:
           path: .next
           if-no-files-found: error
           include-hidden-files: true
-  # ここで別ファイルのワークフローを呼び出す
-  call-diff:
+  Check-Artifact-Differences:
     needs: build
     uses: ./.github/workflows/_compare-artifact.yml
     permissions:
       pull-requests: write
       contents: read
       actions: read
-      artifact-metadata: read
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}

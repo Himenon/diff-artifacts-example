@@ -12,8 +12,11 @@ on:
 
 jobs:
   diff:
+    name: Compare Artifacts ${{ inputs.pr_sha }} vs Main
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      COMMENT_MARKER: "<!-- build-artifacts-diff -->"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -61,10 +64,11 @@ jobs:
         id: compare
         if: steps.download_main.outcome == 'success'
         run: |
-          echo "### 🛠 Build Artifacts Diff" > report.md
+          echo "$COMMENT_MARKER" > report.md
+          echo "### 🛠 Build Artifacts Diff" >> report.md
           echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
           diff -rq .next-base .next-pr > diff_result.txt || true
-          
+
           if [ -s diff_result.txt ]; then
             echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
             echo "\`\`\`" >> report.md
@@ -75,9 +79,29 @@ jobs:
             echo "No directory structure changes detected." >> report.md
           fi
 
-      # 6. コメント投稿
+      # 6. コメント投稿（上書き）
       - name: Post Comment
         if: steps.compare.outputs.HAS_DIFF == 'true'
-        uses: mshick/add-pr-comment@v2
-        with:
-          message-path: report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMENT_BODY=$(cat report.md)
+
+          # 既存のコメントを検索
+          EXISTING_COMMENT_ID=$(gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" \
+            | head -n 1)
+
+          if [ -n "$EXISTING_COMMENT_ID" ]; then
+            # 既存のコメントを更新
+            gh api \
+              repos/${{ github.repository }}/issues/comments/$EXISTING_COMMENT_ID \
+              -X PATCH \
+              -f body="$COMMENT_BODY"
+            echo "Updated existing comment: $EXISTING_COMMENT_ID"
+          else
+            # 新規コメントを作成
+            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT_BODY"
+            echo "Created new comment"
+          fi
