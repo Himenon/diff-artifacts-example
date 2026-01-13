@@ -139,12 +139,12 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
   echo "Full diff URL: $DIFF_URL"
 else
-  echo "Warning: Could not clone diff-viewer repository. Skipping full diff upload."
+  echo "Error: Could not clone diff-viewer repository. Skipping full diff upload."
   echo "This may happen if:"
   echo "  1. The repository does not exist: https://github.com/${DIFF_VIEWER_REPO}"
   echo "  2. The token does not have access to the repository"
   echo "  3. The repository settings do not allow access from this workflow"
-  DIFF_URL=""
+  exit 1
 fi
 
 # サマリーを出力
