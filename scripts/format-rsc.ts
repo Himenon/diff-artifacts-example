@@ -14,19 +14,48 @@ import { globSync } from 'glob';
 import { createFlightResponse, processStringChunk, type Chunk } from '@rsc-parser/react-client';
 import dedent from 'dedent';
 
+/**
+ * RSCチャンクのフォーマット済みデータ
+ */
 interface ChunkData {
+  /** フォーマッター側で付与した連番（1から開始） */
   index: number;
+  /** RSCチャンクのタイプ（例: 'module', 'model', 'text', 'hint', 'errorDev', 'errorProd'） */
   type: string;
+  /** RSCチャンクのID（チャンク参照用） */
   id: string;
+  /** RSCチャンクが作成された時刻（ミリ秒単位のタイムスタンプ） */
   timestamp: number;
+  /** チャンクの値（パース済み）- typeに応じて内容が異なる */
   value?: any;
+  /** ヒントチャンクのコード（type='hint'の場合のみ） */
   code?: string;
+  /** エラーチャンクのエラー情報（type='errorDev'または'errorProd'の場合のみ） */
   error?: {
+    /** エラーメッセージ */
     message: string;
+    /** エラーダイジェスト（任意） */
     digest?: string;
+    /** スタックトレース（任意） */
     stack?: string;
   };
-  originalValue?: any;
+}
+
+/**
+ * フォーマット済みのRSCファイル出力データ
+ */
+interface OutputData {
+  /** メタデータ */
+  metadata: {
+    /** 入力ファイルパス */
+    inputFile: string;
+    /** 出力ファイルパス */
+    outputFile: string;
+    /** チャンクの総数 */
+    chunkCount: number;
+  };
+  /** パース・フォーマットされたチャンクの配列 */
+  chunks: ChunkData[];
 }
 
 function isChunk(chunk: unknown): chunk is Chunk {
@@ -75,23 +104,19 @@ function parseRscFile(filePath: string): ChunkData[] {
     switch (chunk.type) {
       case 'module':
         chunkData.value = chunk.value;
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       case 'model':
         chunkData.value = chunk.value;
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       case 'text':
         chunkData.value = chunk.value;
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       case 'hint':
         chunkData.code = chunk.code;
         chunkData.value = chunk.value;
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       case 'errorDev':
@@ -101,7 +126,6 @@ function parseRscFile(filePath: string): ChunkData[] {
           digest: chunk.error.digest,
           stack: chunk.error.stack,
         };
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       case 'buffer':
@@ -113,12 +137,10 @@ function parseRscFile(filePath: string): ChunkData[] {
       case 'startAsyncIterable':
       case 'stopStream':
         chunkData.value = chunk.value;
-        chunkData.originalValue = chunk.originalValue;
         break;
 
       default:
-        // For any unknown types
-        chunkData.originalValue = chunk.originalValue;
+        // For any unknown types, just keep the basic chunk data
         break;
     }
 
@@ -137,11 +159,10 @@ function formatAndSave(inputPath: string): { success: boolean; error?: string } 
     const chunks = parseRscFile(inputPath);
 
     // Create output JSON
-    const output = {
+    const output: OutputData = {
       metadata: {
         inputFile: inputPath,
         outputFile: outputPath,
-        timestamp: new Date().toISOString(),
         chunkCount: chunks.length,
       },
       chunks,
