@@ -118,25 +118,34 @@ fi
 echo "Pushing full diff to $DIFF_VIEWER_REPO..."
 BRANCH_NAME="pr-${PR_NUMBER}-${PR_SHA}"
 
-git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.git" diff-viewer
-cd diff-viewer
-git checkout -b "$BRANCH_NAME" 2>/dev/null || git checkout "$BRANCH_NAME"
+if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.git" diff-viewer 2>&1; then
+  cd diff-viewer
+  git fetch origin
+  git checkout -B "$BRANCH_NAME"
 
-mkdir -p diffs
-cp ../full_diff.md "diffs/pr-${PR_NUMBER}-${PR_SHA}.md"
+  mkdir -p diffs
+  cp ../full_diff.md "diffs/pr-${PR_NUMBER}-${PR_SHA}.md"
 
-git config user.name "github-actions[bot]"
-git config user.email "github-actions[bot]@users.noreply.github.com"
-git add .
-git commit -m "Add diff for PR #${PR_NUMBER} (${PR_SHA})" || true
-git push -f origin "$BRANCH_NAME"
+  git config user.name "github-actions[bot]"
+  git config user.email "github-actions[bot]@users.noreply.github.com"
+  git add .
+  git commit -m "Add diff for PR #${PR_NUMBER} (${PR_SHA})" || true
+  git push -f origin "$BRANCH_NAME"
 
-cd ..
+  cd ..
 
-# GitHubのファイルURLを生成
-DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/blob/${BRANCH_NAME}/diffs/pr-${PR_NUMBER}-${PR_SHA}.md"
-echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
-echo "Full diff URL: $DIFF_URL"
+  # GitHubのファイルURLを生成
+  DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/blob/${BRANCH_NAME}/diffs/pr-${PR_NUMBER}-${PR_SHA}.md"
+  echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
+  echo "Full diff URL: $DIFF_URL"
+else
+  echo "Warning: Could not clone diff-viewer repository. Skipping full diff upload."
+  echo "This may happen if:"
+  echo "  1. The repository does not exist: https://github.com/${DIFF_VIEWER_REPO}"
+  echo "  2. The token does not have access to the repository"
+  echo "  3. The repository settings do not allow access from this workflow"
+  DIFF_URL=""
+fi
 
 # サマリーを出力
 cat >> report.md <<EOF
@@ -145,9 +154,12 @@ cat >> report.md <<EOF
 - 🔴 Removed: $REMOVED files
 - 🟡 Modified: $MODIFIED files
 
-📊 [View Full Diff]($DIFF_URL)
-
 EOF
+
+if [ -n "$DIFF_URL" ]; then
+  echo "📊 [View Full Diff]($DIFF_URL)" >> report.md
+  echo "" >> report.md
+fi
 
 # Modified Filesの詳細（最大N件）
 if [ "$MODIFIED" -gt 0 ]; then

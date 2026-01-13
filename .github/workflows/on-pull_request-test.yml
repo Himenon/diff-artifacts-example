@@ -37,7 +37,7 @@ jobs:
           path: .next
           if-no-files-found: error
           include-hidden-files: true
-  Check-Artifact-Differences:
+  call-diff:
     needs: build
     uses: ./.github/workflows/_compare-artifact.yml
     permissions:
