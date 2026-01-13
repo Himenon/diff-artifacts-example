@@ -101,8 +101,18 @@ jobs:
         if: steps.compare.outputs.HAS_DIFF == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          DIFF_URL: ${{ steps.compare.outputs.DIFF_URL }}
         run: |
           COMMENT_BODY=$(cat report.md)
+
+          # DIFF_URLが設定されていれば、コメントに追記
+          if [ -n "$DIFF_URL" ]; then
+            echo "" >> /tmp/comment.md
+            echo "---" >> /tmp/comment.md
+            echo "" >> /tmp/comment.md
+            echo "🔗 **View full diff**: $DIFF_URL" >> /tmp/comment.md
+            COMMENT_BODY=$(cat report.md /tmp/comment.md)
+          fi
 
           # 既存のコメントを検索
           EXISTING_COMMENT_ID=$(gh api \
@@ -117,8 +127,10 @@ jobs:
               -X PATCH \
               -f body="$COMMENT_BODY"
             echo "Updated existing comment: $EXISTING_COMMENT_ID"
+            echo "Diff URL: $DIFF_URL"
           else
             # 新規コメントを作成
             gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT_BODY"
             echo "Created new comment"
+            echo "Diff URL: $DIFF_URL"
           fi
