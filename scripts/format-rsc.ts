@@ -8,14 +8,10 @@
  *   pnpm exec node scripts/format-rsc.ts "glob-pattern"
  */
 
-import {
-  type Chunk,
-  createFlightResponse,
-  processStringChunk,
-} from '@rsc-parser/react-client';
-import dedent from 'dedent';
-import { readFileSync, writeFileSync } from 'fs';
-import { globSync } from 'glob';
+import { type Chunk, createFlightResponse, processStringChunk } from "@rsc-parser/react-client";
+import dedent from "dedent";
+import { readFileSync, writeFileSync } from "fs";
+import { globSync } from "glob";
 
 /**
  * RSCチャンクのフォーマット済みデータ
@@ -63,29 +59,29 @@ interface OutputData {
 
 function isChunk(chunk: unknown): chunk is Chunk {
   return (
-    typeof chunk === 'object' &&
+    typeof chunk === "object" &&
     chunk !== null &&
-    'type' in chunk &&
-    typeof (chunk as Chunk).type === 'string' &&
-    'id' in chunk &&
-    'timestamp' in chunk &&
-    typeof (chunk as Chunk).timestamp === 'number'
+    "type" in chunk &&
+    typeof (chunk as Chunk).type === "string" &&
+    "id" in chunk &&
+    "timestamp" in chunk &&
+    typeof (chunk as Chunk).timestamp === "number"
   );
 }
 
 function parseRscFile(filePath: string): ChunkData[] {
   // Read file content
-  const content = readFileSync(filePath, 'utf-8');
+  const content = readFileSync(filePath, "utf-8");
 
   // Create Flight Response (true = development mode)
   const flightResponse = createFlightResponse(true);
 
   // Process the content as string chunks
-  const lines = content.split('\n').filter((line) => line.trim().length > 0);
+  const lines = content.split("\n").filter((line) => line.trim().length > 0);
 
   // Process each line as a chunk
   for (const line of lines) {
-    processStringChunk(flightResponse, line + '\n');
+    processStringChunk(flightResponse, line + "\n");
   }
 
   // Convert chunks to serializable format
@@ -105,25 +101,25 @@ function parseRscFile(filePath: string): ChunkData[] {
     };
 
     switch (chunk.type) {
-      case 'module':
+      case "module":
         chunkData.value = chunk.value;
         break;
 
-      case 'model':
+      case "model":
         chunkData.value = chunk.value;
         break;
 
-      case 'text':
+      case "text":
         chunkData.value = chunk.value;
         break;
 
-      case 'hint':
+      case "hint":
         chunkData.code = chunk.code;
         chunkData.value = chunk.value;
         break;
 
-      case 'errorDev':
-      case 'errorProd':
+      case "errorDev":
+      case "errorProd":
         chunkData.error = {
           message: chunk.error.message,
           digest: chunk.error.digest,
@@ -131,8 +127,8 @@ function parseRscFile(filePath: string): ChunkData[] {
         };
         break;
 
-      case 'postponeDev':
-      case 'postponeProd':
+      case "postponeDev":
+      case "postponeProd":
         chunkData.error = {
           message: chunk.error.message,
           digest: undefined,
@@ -140,12 +136,12 @@ function parseRscFile(filePath: string): ChunkData[] {
         };
         break;
 
-      case 'buffer':
-      case 'debugInfo':
-      case 'console':
-      case 'startReadableStream':
-      case 'startAsyncIterable':
-      case 'stopStream':
+      case "buffer":
+      case "debugInfo":
+      case "console":
+      case "startReadableStream":
+      case "startAsyncIterable":
+      case "stopStream":
         chunkData.value = chunk.value;
         break;
       default:
@@ -180,11 +176,11 @@ function formatAndSave(inputPath: string): {
     };
 
     // Write to JSON file
-    writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');
+    writeFileSync(outputPath, JSON.stringify(output, null, 2), "utf-8");
 
     return { success: true };
   } catch (error: any) {
-    const errorMsg = error.message || 'Unknown error';
+    const errorMsg = error.message || "Unknown error";
     return { success: false, error: errorMsg };
   }
 }
@@ -197,7 +193,7 @@ function processGlobPattern(pattern: string): void {
   });
 
   if (files.length === 0) {
-    console.log('No files found matching the pattern.');
+    console.log("No files found matching the pattern.");
     return;
   }
 
@@ -205,7 +201,7 @@ function processGlobPattern(pattern: string): void {
   files.forEach((file) => {
     console.log(`  - ${file}`);
   });
-  console.log('');
+  console.log("");
 
   // Process each file
   let successCount = 0;
@@ -224,7 +220,7 @@ function processGlobPattern(pattern: string): void {
   });
 
   if (failCount > 0) {
-    console.error('\nFailed files:');
+    console.error("\nFailed files:");
     failedFiles.forEach((file) => console.error(`  - ${file}`));
     process.exit(1);
   }
@@ -271,13 +267,13 @@ try {
       process.exit(1);
     }
 
-    console.log('\n✓ Successfully completed\n');
+    console.log("\n✓ Successfully completed\n");
   }
 } catch (error: any) {
-  console.error('\n✗ Unexpected error:');
+  console.error("\n✗ Unexpected error:");
   console.error(`  ${error.message}`);
   if (error.stack) {
-    console.error('\nStack trace:');
+    console.error("\nStack trace:");
     console.error(error.stack);
   }
   process.exit(1);

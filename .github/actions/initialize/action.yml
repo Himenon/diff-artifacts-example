@@ -1,8 +1,8 @@
-name: 'initialize'
-description: 'Initialize Git configuration for GitHub Actions'
+name: "initialize"
+description: "Initialize Git configuration for GitHub Actions"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Git Config
       run: |
