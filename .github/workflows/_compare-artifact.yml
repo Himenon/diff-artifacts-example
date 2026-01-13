@@ -16,6 +16,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # 全履歴を取得するか、少なくともベースブランチと比較できる程度の履歴が必要
+          fetch-depth: 0
       - uses: ./.github/actions/initialize
       # 1. Mainブランチの最新コミットハッシュ取得
       - name: Get base branch SHA
