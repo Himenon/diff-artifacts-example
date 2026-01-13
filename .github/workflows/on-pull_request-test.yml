@@ -45,6 +45,7 @@ jobs:
       pull-requests: write
       contents: read
       actions: read
+      artifact-metadata: read
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}
