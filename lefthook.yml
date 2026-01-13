@@ -1,7 +1,7 @@
 pre-commit:
   jobs:
-    - name: biome-lint
-      glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
+    - name: scripts format
+      glob: 'scripts/*.{js,jsx,ts,tsx,mjs,cjs}'
       run: pnpm run lint:fix
       stage_fixed: true
     - name: sort package json

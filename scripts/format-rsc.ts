@@ -9,10 +9,14 @@
  *   tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
  */
 
+import {
+  type Chunk,
+  createFlightResponse,
+  processStringChunk,
+} from '@rsc-parser/react-client';
+import dedent from 'dedent';
 import { readFileSync, writeFileSync } from 'fs';
 import { globSync } from 'glob';
-import { createFlightResponse, processStringChunk, type Chunk } from '@rsc-parser/react-client';
-import dedent from 'dedent';
 
 /**
  * RSCチャンクのフォーマット済みデータ
@@ -78,7 +82,7 @@ function parseRscFile(filePath: string): ChunkData[] {
   const flightResponse = createFlightResponse(true);
 
   // Process the content as string chunks
-  const lines = content.split('\n').filter(line => line.trim().length > 0);
+  const lines = content.split('\n').filter((line) => line.trim().length > 0);
 
   // Process each line as a chunk
   for (const line of lines) {
@@ -128,20 +132,26 @@ function parseRscFile(filePath: string): ChunkData[] {
         };
         break;
 
+      case 'postponeDev':
+      case 'postponeProd':
+        chunkData.error = {
+          message: chunk.error.message,
+          digest: undefined,
+          stack: undefined,
+        };
+        break;
+
       case 'buffer':
       case 'debugInfo':
       case 'console':
-      case 'postponeDev':
-      case 'postponeProd':
       case 'startReadableStream':
       case 'startAsyncIterable':
       case 'stopStream':
         chunkData.value = chunk.value;
         break;
-
       default:
         // For any unknown types, just keep the basic chunk data
-        break;
+        throw new Error(`Unknown chunk type: ${chunk satisfies never}`);
     }
 
     chunks.push(chunkData);
@@ -150,8 +160,10 @@ function parseRscFile(filePath: string): ChunkData[] {
   return chunks;
 }
 
-
-function formatAndSave(inputPath: string): { success: boolean; error?: string } {
+function formatAndSave(inputPath: string): {
+  success: boolean;
+  error?: string;
+} {
   const outputPath = `${inputPath}.json`;
 
   try {
@@ -221,7 +233,7 @@ function processGlobPattern(pattern: string): void {
 
   if (failCount > 0) {
     console.error('\nFailed files:');
-    failedFiles.forEach(file => console.error(`  - ${file}`));
+    failedFiles.forEach((file) => console.error(`  - ${file}`));
     process.exit(1);
   }
 }
