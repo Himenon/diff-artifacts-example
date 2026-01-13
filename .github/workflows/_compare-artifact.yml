@@ -67,12 +67,12 @@ jobs:
           echo "$COMMENT_MARKER" > report.md
           echo "### 🛠 Build Artifacts Diff" >> report.md
           echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
-          diff -rq .next-base .next-pr > diff_result.txt || true
+          diff -r -U 0 --no-dereference .next-base .next-pr > diff_result.txt || true
 
           if [ -s diff_result.txt ]; then
             echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
-            echo "\`\`\`" >> report.md
-            cat diff_result.txt | head -n 30 >> report.md
+            echo "\`\`\`diff" >> report.md
+            cat diff_result.txt | head -n 50 >> report.md
             echo "\`\`\`" >> report.md
           else
             echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
