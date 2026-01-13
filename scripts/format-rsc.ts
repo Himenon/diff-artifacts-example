@@ -30,8 +30,6 @@ interface ChunkData {
 }
 
 function parseRscFile(filePath: string): ChunkData[] {
-  console.log(`\nParsing RSC file: ${filePath}`);
-
   // Read file content
   const content = readFileSync(filePath, 'utf-8');
 
@@ -40,8 +38,6 @@ function parseRscFile(filePath: string): ChunkData[] {
 
   // Process the content as string chunks
   const lines = content.split('\n').filter(line => line.trim().length > 0);
-
-  console.log(`Found ${lines.length} chunks`);
 
   // Process each line as a chunk
   for (const line of lines) {
@@ -89,12 +85,8 @@ function parseRscFile(filePath: string): ChunkData[] {
 }
 
 
-function formatAndSave(inputPath: string, quiet: boolean = false): { success: boolean; error?: string } {
+function formatAndSave(inputPath: string): { success: boolean; error?: string } {
   const outputPath = `${inputPath}.json`;
-
-  if (!quiet) {
-    console.log(`\nProcessing: ${inputPath}`);
-  }
 
   try {
     // Parse the RSC file
@@ -114,23 +106,14 @@ function formatAndSave(inputPath: string, quiet: boolean = false): { success: bo
     // Write to JSON file
     writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');
 
-    if (!quiet) {
-      console.log(`  ✓ ${chunks.length} chunks → ${outputPath}`);
-    }
-
     return { success: true };
   } catch (error: any) {
     const errorMsg = error.message || 'Unknown error';
-    if (!quiet) {
-      console.error(`  ✗ Failed: ${errorMsg}`);
-    }
     return { success: false, error: errorMsg };
   }
 }
 
 function processGlobPattern(pattern: string): void {
-  console.log(`\nSearching for files matching: ${pattern}`);
-
   // Find all matching files
   const files = globSync(pattern, {
     nodir: true,
@@ -142,22 +125,21 @@ function processGlobPattern(pattern: string): void {
     return;
   }
 
-  console.log(`Found ${files.length} file(s)\n`);
+  console.log(`Processing ${files.length} file(s)...`);
 
   // Process each file
   let successCount = 0;
   let failCount = 0;
+  const failedFiles: string[] = [];
 
-  files.forEach((file, index) => {
-    console.log(`[${index + 1}/${files.length}] ${file}`);
-    const result = formatAndSave(file, true);
+  files.forEach((file) => {
+    const result = formatAndSave(file);
 
     if (result.success) {
       successCount++;
-      console.log(`  ✓ Success`);
     } else {
       failCount++;
-      console.log(`  ✗ Failed: ${result.error}`);
+      failedFiles.push(`${file}: ${result.error}`);
     }
   });
 
@@ -173,6 +155,8 @@ function processGlobPattern(pattern: string): void {
   `);
 
   if (failCount > 0) {
+    console.error('\nFailed files:');
+    failedFiles.forEach(file => console.error(`  - ${file}`));
     process.exit(1);
   }
 }
