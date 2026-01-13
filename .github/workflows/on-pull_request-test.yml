@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version-file: package.json
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm i --frozen-lockfile
       - run: pnpm build
       - name: Set short SHA
@@ -37,7 +37,6 @@ jobs:
           path: .next
           if-no-files-found: error
           include-hidden-files: true
-  # ここで別ファイルのワークフローを呼び出す
   call-diff:
     needs: build
     uses: ./.github/workflows/_compare-artifact.yml
@@ -45,6 +44,9 @@ jobs:
       pull-requests: write
       contents: read
       actions: read
+    secrets:
+      app_id: ${{ secrets.APP_ID }}
+      app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}

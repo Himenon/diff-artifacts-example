@@ -9,62 +9,131 @@ on:
       base_ref:
         required: true
         type: string
+    secrets:
+      app_id:
+        required: true
+        description: "GitHub App ID"
+      app_private_key:
+        required: true
+        description: "GitHub App Private Key"
 
 jobs:
   diff:
+    name: Compare Artifacts ${{ inputs.pr_sha }} vs Main
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      COMMENT_MARKER: "<!-- build-artifacts-diff -->"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           # 全履歴を取得するか、少なくともベースブランチと比較できる程度の履歴が必要
           fetch-depth: 0
       - uses: ./.github/actions/initialize
-      # 1. Mainブランチの最新コミットハッシュ取得
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version-file: package.json
+          cache: 'pnpm'
+      - run: pnpm i --frozen-lockfile
+
+      # 1. Generate GitHub App Token
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: Himenon
+          repositories: compare-action-diff-viewer
+
+      # 2. Mainブランチの最新コミットハッシュ取得
       - name: Get base branch SHA
         id: base_info
         run: |
           SHA=$(git rev-parse origin/${{ inputs.base_ref }})
           echo "sha_short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # 2. MainのArtifactをダウンロード
+      # 3. Mainブランチの最新のワークフロー実行IDを取得
+      - name: Get main branch workflow run ID
+        id: main_run
+        continue-on-error: true
+        run: |
+          RUN_ID=$(gh run list --branch ${{ inputs.base_ref }} --workflow on-push-main.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # 4. MainのArtifactをダウンロード
       - name: Download Main Artifact
         id: download_main
+        if: steps.main_run.outputs.run_id != ''
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: build-main-${{ steps.base_info.outputs.sha_short }}
           path: .next-base
+          run-id: ${{ steps.main_run.outputs.run_id }}
+          github-token: ${{ github.token }}
 
-      # 3. 現在のPRのArtifactをダウンロード
+      # 5. 現在のPRのArtifactをダウンロード
       - name: "Download PR Artifact: build-pr-${{ inputs.pr_sha }}"
         uses: actions/download-artifact@v7
         with:
           name: build-pr-${{ inputs.pr_sha }}
           path: .next-pr
 
-      # 4. 比較
+      # 6. 比較
       - name: Compare Artifacts
         id: compare
         if: steps.download_main.outcome == 'success'
-        run: |
-          echo "### 🛠 Build Artifacts Diff" > report.md
-          echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
-          diff -rq .next-base .next-pr > diff_result.txt || true
-          
-          if [ -s diff_result.txt ]; then
-            echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
-            echo "\`\`\`" >> report.md
-            cat diff_result.txt | head -n 30 >> report.md
-            echo "\`\`\`" >> report.md
-          else
-            echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
-            echo "No directory structure changes detected." >> report.md
-          fi
+        env:
+          COMMENT_MARKER: ${{ env.COMMENT_MARKER }}
+          BASE_SHA_SHORT: ${{ steps.base_info.outputs.sha_short }}
+          PR_SHA: ${{ inputs.pr_sha }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
+          BASE_DIR: .next-base
+          PR_DIR: .next-pr
+        run: ./.github/scripts/compare-artifacts.sh
 
-      # 5. コメント投稿
+      # 7. コメント投稿（上書き）
       - name: Post Comment
         if: steps.compare.outputs.HAS_DIFF == 'true'
-        uses: mshick/add-pr-comment@v2
-        with:
-          message-path: report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIFF_URL: ${{ steps.compare.outputs.DIFF_URL }}
+        run: |
+          COMMENT_BODY=$(cat report.md)
+
+          # DIFF_URLが設定されていれば、コメントに追記
+          if [ -n "$DIFF_URL" ]; then
+            echo "" >> /tmp/comment.md
+            echo "---" >> /tmp/comment.md
+            echo "" >> /tmp/comment.md
+            echo "🔗 **View full diff**: $DIFF_URL" >> /tmp/comment.md
+            COMMENT_BODY=$(cat report.md /tmp/comment.md)
+          fi
+
+          # 既存のコメントを検索
+          EXISTING_COMMENT_ID=$(gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" \
+            | head -n 1)
+
+          if [ -n "$EXISTING_COMMENT_ID" ]; then
+            # 既存のコメントを更新
+            gh api \
+              repos/${{ github.repository }}/issues/comments/$EXISTING_COMMENT_ID \
+              -X PATCH \
+              -f body="$COMMENT_BODY"
+            echo "Updated existing comment: $EXISTING_COMMENT_ID"
+            echo "Diff URL: $DIFF_URL"
+          else
+            # 新規コメントを作成
+            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT_BODY"
+            echo "Created new comment"
+            echo "Diff URL: $DIFF_URL"
+          fi
