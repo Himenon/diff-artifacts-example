@@ -50,3 +50,5 @@ jobs:
         with:
           name: build-${{ steps.vars.outputs.sha_short }}
           path: .next-build.tar
+          if-no-files-found: error
+          include-hidden-files: true
