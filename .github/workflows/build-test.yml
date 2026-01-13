@@ -48,4 +48,4 @@ jobs:
         uses: actions/upload-artifact@v6.0.0
         with:
           name: build-${{ steps.vars.outputs.sha_short }}
-          path: ./.next/
+          path: .next/*
