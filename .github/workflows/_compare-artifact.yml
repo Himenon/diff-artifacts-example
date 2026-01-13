@@ -67,16 +67,52 @@ jobs:
           echo "$COMMENT_MARKER" > report.md
           echo "### 🛠 Build Artifacts Diff" >> report.md
           echo "Comparing \`main\` (${{ steps.base_info.outputs.sha_short }}) vs \`PR\` (${{ inputs.pr_sha }})" >> report.md
-          diff -r -U 0 --no-dereference .next-base .next-pr | sed 's|\.next-base/||g; s|\.next-pr/||g' > diff_result.txt || true
+          echo "" >> report.md
+
+          # ファイルレベルの差分を取得
+          diff -rq .next-base .next-pr > diff_result.txt || true
 
           if [ -s diff_result.txt ]; then
             echo "HAS_DIFF=true" >> $GITHUB_OUTPUT
-            echo "\`\`\`diff" >> report.md
-            cat diff_result.txt | head -n 50 >> report.md
-            echo "\`\`\`" >> report.md
+
+            # 統計情報を収集
+            ADDED=$(grep "Only in .next-pr" diff_result.txt | wc -l)
+            REMOVED=$(grep "Only in .next-base" diff_result.txt | wc -l)
+            MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l)
+
+            # サマリーを出力
+            echo "#### Summary" >> report.md
+            echo "- 🟢 Added: $ADDED files" >> report.md
+            echo "- 🔴 Removed: $REMOVED files" >> report.md
+            echo "- 🟡 Modified: $MODIFIED files" >> report.md
+            echo "" >> report.md
+
+            # 詳細を出力
+            if [ $MODIFIED -gt 0 ]; then
+              echo "#### Modified Files" >> report.md
+              echo "\`\`\`" >> report.md
+              grep "Files .* differ" diff_result.txt | sed 's|Files .next-base/||g; s| and .next-pr/| vs |g; s| differ||g' | head -n 30 >> report.md
+              echo "\`\`\`" >> report.md
+              echo "" >> report.md
+            fi
+
+            if [ $ADDED -gt 0 ]; then
+              echo "#### Added Files" >> report.md
+              echo "\`\`\`" >> report.md
+              grep "Only in .next-pr" diff_result.txt | sed 's|Only in .next-pr||g; s|: |/|g' | head -n 20 >> report.md
+              echo "\`\`\`" >> report.md
+              echo "" >> report.md
+            fi
+
+            if [ $REMOVED -gt 0 ]; then
+              echo "#### Removed Files" >> report.md
+              echo "\`\`\`" >> report.md
+              grep "Only in .next-base" diff_result.txt | sed 's|Only in .next-base||g; s|: |/|g' | head -n 20 >> report.md
+              echo "\`\`\`" >> report.md
+            fi
           else
             echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
-            echo "No directory structure changes detected." >> report.md
+            echo "✅ No changes detected." >> report.md
           fi
 
       # 6. コメント投稿（上書き）
