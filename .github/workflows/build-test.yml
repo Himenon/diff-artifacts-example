@@ -44,8 +44,11 @@ jobs:
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Make a 1GB random binary file
+        run: |
+          ls -la .next/
       - name: ディレクトリをアップロード
         uses: actions/upload-artifact@v6.0.0
         with:
           name: build-${{ steps.vars.outputs.sha_short }}
-          path: .next/*
+          path: .next/
