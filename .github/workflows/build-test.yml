@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
-            ${{ github.workspace }}/packages/site/.next/cache
+            ${{ github.workspace }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.md') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
@@ -40,14 +40,13 @@ jobs:
       - name: Build & Test
         run: |
           pnpm build
-          ls -la
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: 'Tar files'
         run: tar -cvf .next-build.tar .next/
       - name: ディレクトリをアップロード
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ steps.vars.outputs.sha_short }}
           path: .next-build.tar
