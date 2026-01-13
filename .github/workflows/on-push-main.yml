@@ -1,24 +1,14 @@
 name: Build
 
 on:
-  pull_request:
-
-concurrency:
-  group: 'build-test'
-  cancel-in-progress: false
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.os }}-${{ github.ref }}
-      cancel-in-progress: true
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -37,18 +27,14 @@ jobs:
           node-version-file: package.json
           cache: 'pnpm'
       - run: pnpm i --frozen-lockfile
-      - name: Build & Test
-        run: |
-          pnpm build
+      - run: pnpm build
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      - name: 'Tar files'
-        run: tar -cvf .next-build.tar .next/
-      - name: ディレクトリをアップロード
+      - name: Upload build directory
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ steps.vars.outputs.sha_short }}
-          path: .next-build.tar
+          name: build-main-${{ steps.vars.outputs.sha_short }}
+          path: .next
           if-no-files-found: error
           include-hidden-files: true
