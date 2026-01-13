@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@rsc-parser/embedded':
+        specifier: ^1.1.2
+        version: 1.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@rsc-parser/react-client':
+        specifier: ^1.1.2
+        version: 1.1.2
       next:
         specifier: 16.1.1
         version: 16.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -307,6 +313,15 @@ packages:
     resolution: {integrity: sha512-sbi25lfj74hH+6qQtb7s1wEvd1j8OQbTaH8v3xTcDjrwm579Cyh0HBv1YSZ2+gsnVwfVDiCTL1D0JsNqYXszVA==}
     cpu: [x64]
     os: [win32]
+
+  '@rsc-parser/embedded@1.1.2':
+    resolution: {integrity: sha512-lUeG1xVUw1mXliib4UFHU+YP7BwPUEbTlr6HFUb1Xp1UoxvTFABFdCRjGnN+dQhYYyLyLoXlknz5789vTq76rQ==}
+    peerDependencies:
+      react: 19.1.0
+      react-dom: 19.1.0
+
+  '@rsc-parser/react-client@1.1.2':
+    resolution: {integrity: sha512-IXW7ViicNACwI1vxAQgndtRKZlM9HgGpxSZdqnXn8fCY2VvUkqas03WuHv4LnVlCdC3HGwhbh3r3TBLxRrYSgw==}
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -1489,6 +1504,13 @@ snapshots:
 
   '@oxlint/win32-x64@1.39.0':
     optional: true
+
+  '@rsc-parser/embedded@1.1.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
+  '@rsc-parser/react-client@1.1.2': {}
 
   '@swc/helpers@0.5.15':
     dependencies:
