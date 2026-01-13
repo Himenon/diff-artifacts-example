@@ -87,28 +87,56 @@ jobs:
             echo "- 🟡 Modified: $MODIFIED files" >> report.md
             echo "" >> report.md
 
-            # 詳細を出力
+            # Modified Filesの詳細
             if [ $MODIFIED -gt 0 ]; then
-              echo "#### Modified Files" >> report.md
-              echo "\`\`\`" >> report.md
-              grep "Files .* differ" diff_result.txt | sed 's|Files .next-base/||g; s| and .next-pr/| vs |g; s| differ||g' | head -n 30 >> report.md
-              echo "\`\`\`" >> report.md
-              echo "" >> report.md
+              echo "#### 🟡 Modified Files" >> report.md
+              grep "Files .* differ" diff_result.txt | while read line; do
+                FILE1=$(echo "$line" | sed 's/Files \(.*\) and .* differ/\1/')
+                FILE2=$(echo "$line" | sed 's/Files .* and \(.*\) differ/\1/')
+                FILENAME=$(echo "$FILE2" | sed 's|.next-pr/||')
+
+                echo "<details><summary><code>$FILENAME</code></summary>" >> report.md
+                echo "" >> report.md
+                echo "\`\`\`diff" >> report.md
+                diff -u "$FILE1" "$FILE2" | sed 's|.next-base/||g; s|.next-pr/||g' | head -n 100 >> report.md || true
+                echo "\`\`\`" >> report.md
+                echo "</details>" >> report.md
+                echo "" >> report.md
+              done
             fi
 
+            # Added Filesの詳細
             if [ $ADDED -gt 0 ]; then
-              echo "#### Added Files" >> report.md
-              echo "\`\`\`" >> report.md
-              grep "Only in .next-pr" diff_result.txt | sed 's|Only in .next-pr||g; s|: |/|g' | head -n 20 >> report.md
-              echo "\`\`\`" >> report.md
+              echo "#### 🟢 Added Files" >> report.md
+              grep "Only in .next-pr" diff_result.txt | while read line; do
+                DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-pr||')
+                FILE=$(echo "$line" | sed 's/Only in .*: //')
+                FULLPATH=".next-pr${DIR}/${FILE}"
+                FILEPATH="${DIR}/${FILE}"
+
+                if [ -f "$FULLPATH" ]; then
+                  SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
+                  echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
+                fi
+              done
               echo "" >> report.md
             fi
 
+            # Removed Filesの詳細
             if [ $REMOVED -gt 0 ]; then
-              echo "#### Removed Files" >> report.md
-              echo "\`\`\`" >> report.md
-              grep "Only in .next-base" diff_result.txt | sed 's|Only in .next-base||g; s|: |/|g' | head -n 20 >> report.md
-              echo "\`\`\`" >> report.md
+              echo "#### 🔴 Removed Files" >> report.md
+              grep "Only in .next-base" diff_result.txt | while read line; do
+                DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-base||')
+                FILE=$(echo "$line" | sed 's/Only in .*: //')
+                FULLPATH=".next-base${DIR}/${FILE}"
+                FILEPATH="${DIR}/${FILE}"
+
+                if [ -f "$FULLPATH" ]; then
+                  SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
+                  echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
+                fi
+              done
+              echo "" >> report.md
             fi
           else
             echo "HAS_DIFF=false" >> $GITHUB_OUTPUT
