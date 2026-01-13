@@ -5,9 +5,12 @@
  *
  * Usage:
  *   tsx scripts/format-rsc.ts path/to/file.rsc
+ *   tsx scripts/format-rsc.ts "glob-pattern"
+ *   tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
  */
 
 import { readFileSync, writeFileSync } from 'fs';
+import { globSync } from 'glob';
 import { createFlightResponse, processStringChunk, processBinaryChunk } from '@rsc-parser/react-client';
 
 interface ChunkData {
@@ -136,54 +139,137 @@ function parseRscFileBinary(filePath: string): ChunkData[] {
   return chunks;
 }
 
-function formatAndSave(inputPath: string, useBinary: boolean = false): void {
+function formatAndSave(inputPath: string, useBinary: boolean = false, quiet: boolean = false): { success: boolean; error?: string } {
   const outputPath = `${inputPath}.json`;
 
-  console.log(`Input:  ${inputPath}`);
-  console.log(`Output: ${outputPath}`);
+  if (!quiet) {
+    console.log(`\nProcessing: ${inputPath}`);
+  }
 
-  // Parse the RSC file
-  const chunks = useBinary ? parseRscFileBinary(inputPath) : parseRscFile(inputPath);
+  try {
+    // Parse the RSC file
+    const chunks = useBinary ? parseRscFileBinary(inputPath) : parseRscFile(inputPath);
 
-  // Create output JSON
-  const output = {
-    metadata: {
-      inputFile: inputPath,
-      outputFile: outputPath,
-      timestamp: new Date().toISOString(),
-      chunkCount: chunks.length,
-      mode: useBinary ? 'binary' : 'text',
-    },
-    chunks,
-  };
+    // Create output JSON
+    const output = {
+      metadata: {
+        inputFile: inputPath,
+        outputFile: outputPath,
+        timestamp: new Date().toISOString(),
+        chunkCount: chunks.length,
+        mode: useBinary ? 'binary' : 'text',
+      },
+      chunks,
+    };
 
-  // Write to JSON file
-  writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');
+    // Write to JSON file
+    writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');
 
-  console.log(`\n✓ Successfully formatted ${chunks.length} chunks`);
-  console.log(`✓ Saved to: ${outputPath}\n`);
+    if (!quiet) {
+      console.log(`  ✓ ${chunks.length} chunks → ${outputPath}`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    const errorMsg = error.message || 'Unknown error';
+    if (!quiet) {
+      console.error(`  ✗ Failed: ${errorMsg}`);
+    }
+    return { success: false, error: errorMsg };
+  }
+}
+
+function processGlobPattern(pattern: string, useBinary: boolean = false): void {
+  console.log(`\nSearching for files matching: ${pattern}`);
+
+  // Find all matching files
+  const files = globSync(pattern, {
+    nodir: true,
+    absolute: false,
+  });
+
+  if (files.length === 0) {
+    console.log('No files found matching the pattern.');
+    return;
+  }
+
+  console.log(`Found ${files.length} file(s)\n`);
+
+  // Process each file
+  let successCount = 0;
+  let failCount = 0;
+
+  files.forEach((file, index) => {
+    console.log(`[${index + 1}/${files.length}] ${file}`);
+    const result = formatAndSave(file, useBinary, true);
+
+    if (result.success) {
+      successCount++;
+      console.log(`  ✓ Success`);
+    } else {
+      failCount++;
+      console.log(`  ✗ Failed: ${result.error}`);
+    }
+  });
+
+  // Summary
+  console.log(`\n${'='.repeat(50)}`);
+  console.log(`Summary:`);
+  console.log(`  Total:   ${files.length}`);
+  console.log(`  Success: ${successCount}`);
+  console.log(`  Failed:  ${failCount}`);
+  console.log(`${'='.repeat(50)}\n`);
+
+  if (failCount > 0) {
+    process.exit(1);
+  }
 }
 
 // Main execution
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error('Usage: tsx scripts/format-rsc.ts <path-to-rsc-file> [--binary]');
-  console.error('\nExample:');
-  console.error('  tsx scripts/format-rsc.ts input.rsc');
-  console.error('  tsx scripts/format-rsc.ts input.rsc --binary');
-  console.error('\nOutput:');
-  console.error('  Creates input.rsc.json next to the input file');
+  console.error('Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern> [--binary]');
+  console.error('\nExamples:');
+  console.error('  Single file:');
+  console.error('    tsx scripts/format-rsc.ts input.rsc');
+  console.error('    tsx scripts/format-rsc.ts input.rsc --binary');
+  console.error('');
+  console.error('  Multiple files (glob):');
+  console.error('    tsx scripts/format-rsc.ts "**/*.rsc"');
+  console.error('    tsx scripts/format-rsc.ts ".next/**/*.rsc"');
+  console.error('    tsx scripts/format-rsc.ts ".next/server/app/**/*.rsc"');
+  console.error('');
+  console.error('Output:');
+  console.error('  Creates .rsc.json files next to each input file');
+  console.error('  (e.g., input.rsc → input.rsc.json)');
   process.exit(1);
 }
 
-const filePath = args[0];
+const pattern = args[0];
 const useBinary = args.includes('--binary');
 
 try {
-  formatAndSave(filePath, useBinary);
+  // Check if pattern contains glob special characters
+  const isGlob = /[*?[\]{}]/.test(pattern);
+
+  if (isGlob) {
+    // Process multiple files using glob pattern
+    processGlobPattern(pattern, useBinary);
+  } else {
+    // Process single file
+    console.log(`\nProcessing single file: ${pattern}`);
+    const result = formatAndSave(pattern, useBinary);
+
+    if (!result.success) {
+      console.error(`\n✗ Error: ${result.error}`);
+      process.exit(1);
+    }
+
+    console.log('\n✓ Successfully completed\n');
+  }
 } catch (error: any) {
-  console.error('\n✗ Error formatting RSC file:');
+  console.error('\n✗ Unexpected error:');
   console.error(`  ${error.message}`);
   if (error.stack) {
     console.error('\nStack trace:');
