@@ -41,6 +41,8 @@ jobs:
   call-diff:
     needs: build
     uses: ./.github/workflows/_compare-artifact.yml
+    permissions:
+      pull-requests: write
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}
