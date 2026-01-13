@@ -90,7 +90,9 @@ jobs:
             # Modified Filesの詳細
             if [ $MODIFIED -gt 0 ]; then
               echo "#### 🟡 Modified Files" >> report.md
-              grep "Files .* differ" diff_result.txt | while read line; do
+              COUNT=0
+              MAX_FILES=10
+              grep "Files .* differ" diff_result.txt | head -n $MAX_FILES | while IFS= read -r line; do
                 FILE1=$(echo "$line" | sed 's/Files \(.*\) and .* differ/\1/')
                 FILE2=$(echo "$line" | sed 's/Files .* and \(.*\) differ/\1/')
                 FILENAME=$(echo "$FILE2" | sed 's|.next-pr/||')
@@ -98,17 +100,24 @@ jobs:
                 echo "<details><summary><code>$FILENAME</code></summary>" >> report.md
                 echo "" >> report.md
                 echo "\`\`\`diff" >> report.md
-                diff -u "$FILE1" "$FILE2" | sed 's|.next-base/||g; s|.next-pr/||g' | head -n 100 >> report.md || true
+                diff -u "$FILE1" "$FILE2" 2>/dev/null | sed 's|.next-base/||g; s|.next-pr/||g' | head -n 100 >> report.md || echo "Binary files differ or file too large" >> report.md
                 echo "\`\`\`" >> report.md
                 echo "</details>" >> report.md
                 echo "" >> report.md
+                COUNT=$((COUNT + 1))
               done
+              if [ $MODIFIED -gt $MAX_FILES ]; then
+                echo "_... and $((MODIFIED - MAX_FILES)) more modified files_" >> report.md
+                echo "" >> report.md
+              fi
             fi
 
             # Added Filesの詳細
             if [ $ADDED -gt 0 ]; then
               echo "#### 🟢 Added Files" >> report.md
-              grep "Only in .next-pr" diff_result.txt | while read line; do
+              MAX_ADDED=20
+              COUNT=0
+              grep "Only in .next-pr" diff_result.txt | head -n $MAX_ADDED | while IFS= read -r line; do
                 DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-pr||')
                 FILE=$(echo "$line" | sed 's/Only in .*: //')
                 FULLPATH=".next-pr${DIR}/${FILE}"
@@ -118,14 +127,20 @@ jobs:
                   SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
                   echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
                 fi
+                COUNT=$((COUNT + 1))
               done
+              if [ $ADDED -gt $MAX_ADDED ]; then
+                echo "_... and $((ADDED - MAX_ADDED)) more added files_" >> report.md
+              fi
               echo "" >> report.md
             fi
 
             # Removed Filesの詳細
             if [ $REMOVED -gt 0 ]; then
               echo "#### 🔴 Removed Files" >> report.md
-              grep "Only in .next-base" diff_result.txt | while read line; do
+              MAX_REMOVED=20
+              COUNT=0
+              grep "Only in .next-base" diff_result.txt | head -n $MAX_REMOVED | while IFS= read -r line; do
                 DIR=$(echo "$line" | sed 's/Only in \(.*\): .*/\1/' | sed 's|.next-base||')
                 FILE=$(echo "$line" | sed 's/Only in .*: //')
                 FULLPATH=".next-base${DIR}/${FILE}"
@@ -135,7 +150,11 @@ jobs:
                   SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
                   echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
                 fi
+                COUNT=$((COUNT + 1))
               done
+              if [ $REMOVED -gt $MAX_REMOVED ]; then
+                echo "_... and $((REMOVED - MAX_REMOVED)) more removed files_" >> report.md
+              fi
               echo "" >> report.md
             fi
           else
