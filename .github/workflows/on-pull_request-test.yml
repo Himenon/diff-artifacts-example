@@ -44,6 +44,9 @@ jobs:
       pull-requests: write
       contents: read
       actions: read
+    secrets:
+      app_id: ${{ secrets.APP_ID }}
+      app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}

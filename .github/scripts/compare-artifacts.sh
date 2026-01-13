@@ -118,7 +118,7 @@ fi
 echo "Pushing full diff to $DIFF_VIEWER_REPO..."
 BRANCH_NAME="pr-${PR_NUMBER}-${PR_SHA}"
 
-if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.git" diff-viewer 2>&1; then
+if gh repo clone "${DIFF_VIEWER_REPO}" diff-viewer 2>&1; then
   cd diff-viewer
   git fetch origin
   git checkout -B "$BRANCH_NAME"

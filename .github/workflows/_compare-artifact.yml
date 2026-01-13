@@ -9,6 +9,13 @@ on:
       base_ref:
         required: true
         type: string
+    secrets:
+      app_id:
+        required: true
+        description: "GitHub App ID"
+      app_private_key:
+        required: true
+        description: "GitHub App Private Key"
 
 jobs:
   diff:
@@ -23,14 +30,25 @@ jobs:
           # 全履歴を取得するか、少なくともベースブランチと比較できる程度の履歴が必要
           fetch-depth: 0
       - uses: ./.github/actions/initialize
-      # 1. Mainブランチの最新コミットハッシュ取得
+
+      # 1. Generate GitHub App Token
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        with:
+          app-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: Himenon
+          repositories: compare-action-diff-viewer
+
+      # 2. Mainブランチの最新コミットハッシュ取得
       - name: Get base branch SHA
         id: base_info
         run: |
           SHA=$(git rev-parse origin/${{ inputs.base_ref }})
           echo "sha_short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # 2. Mainブランチの最新のワークフロー実行IDを取得
+      # 3. Mainブランチの最新のワークフロー実行IDを取得
       - name: Get main branch workflow run ID
         id: main_run
         continue-on-error: true
@@ -40,7 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      # 3. MainのArtifactをダウンロード
+      # 4. MainのArtifactをダウンロード
       - name: Download Main Artifact
         id: download_main
         if: steps.main_run.outputs.run_id != ''
@@ -52,14 +70,14 @@ jobs:
           run-id: ${{ steps.main_run.outputs.run_id }}
           github-token: ${{ github.token }}
 
-      # 4. 現在のPRのArtifactをダウンロード
+      # 5. 現在のPRのArtifactをダウンロード
       - name: "Download PR Artifact: build-pr-${{ inputs.pr_sha }}"
         uses: actions/download-artifact@v7
         with:
           name: build-pr-${{ inputs.pr_sha }}
           path: .next-pr
 
-      # 5. 比較
+      # 6. 比較
       - name: Compare Artifacts
         id: compare
         if: steps.download_main.outcome == 'success'
@@ -67,7 +85,7 @@ jobs:
           COMMENT_MARKER: ${{ env.COMMENT_MARKER }}
           BASE_SHA_SHORT: ${{ steps.base_info.outputs.sha_short }}
           PR_SHA: ${{ inputs.pr_sha }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
@@ -78,8 +96,8 @@ jobs:
           MAX_REMOVED_FILES: "20"
         run: ./.github/scripts/compare-artifacts.sh
 
-      # 6. コメント投稿（上書き）
-      - name: Post Comment 2
+      # 7. コメント投稿（上書き）
+      - name: Post Comment
         if: steps.compare.outputs.HAS_DIFF == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
