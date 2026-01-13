@@ -80,6 +80,10 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${BASE_DIR}/." .
 
+  # アーティファクトをフォーマット
+  echo "Formatting main branch artifacts..."
+  bash ../scripts/format-build-dir.sh .
+
   git add -A
   if git diff --staged --quiet; then
     echo "No changes in main branch artifacts"
@@ -103,6 +107,10 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # PRのアーティファクトをコピー
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${PR_DIR}/." .
+
+  # アーティファクトをフォーマット
+  echo "Formatting PR branch artifacts..."
+  bash ../scripts/format-build-dir.sh .
 
   git add -A
   if git diff --staged --quiet; then
