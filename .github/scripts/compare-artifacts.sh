@@ -14,9 +14,6 @@ set -e
 DIFF_VIEWER_REPO="${DIFF_VIEWER_REPO:-Himenon/compare-action-diff-viewer}"
 BASE_DIR="${BASE_DIR:-.next-base}"
 PR_DIR="${PR_DIR:-.next-pr}"
-MAX_MODIFIED_FILES="${MAX_MODIFIED_FILES:-10}"
-MAX_ADDED_FILES="${MAX_ADDED_FILES:-20}"
-MAX_REMOVED_FILES="${MAX_REMOVED_FILES:-20}"
 
 echo "Starting artifact comparison..."
 echo "Base: $BASE_SHA_SHORT, PR: $PR_SHA"
@@ -185,76 +182,8 @@ cat >> report.md <<EOF
 EOF
 
 if [ -n "$DIFF_URL" ]; then
-  echo "📊 [View Diff in GitHub PR]($DIFF_URL)" >> report.md
   echo "" >> report.md
-fi
-
-# Modified Filesの詳細（最大N件）
-if [ "$MODIFIED" -gt 0 ]; then
-  echo "#### 🟡 Modified Files" >> report.md
-  COUNT=0
-  grep "Files .* differ" diff_result.txt | head -n "$MAX_MODIFIED_FILES" | while IFS= read -r line; do
-    FILE1=$(echo "$line" | sed 's/Files \(.*\) and .* differ/\1/')
-    FILE2=$(echo "$line" | sed 's/Files .* and \(.*\) differ/\1/')
-    FILENAME=$(echo "$FILE2" | sed "s|$PR_DIR/||")
-
-    echo "<details><summary><code>$FILENAME</code></summary>" >> report.md
-    echo "" >> report.md
-    echo "\`\`\`diff" >> report.md
-    diff -u "$FILE1" "$FILE2" 2>/dev/null | sed "s|$BASE_DIR/||g; s|$PR_DIR/||g" | head -n 100 >> report.md || echo "Binary files differ or file too large" >> report.md
-    echo "\`\`\`" >> report.md
-    echo "</details>" >> report.md
-    echo "" >> report.md
-    COUNT=$((COUNT + 1))
-  done
-  if [ "$MODIFIED" -gt "$MAX_MODIFIED_FILES" ]; then
-    echo "_... and $((MODIFIED - MAX_MODIFIED_FILES)) more modified files_" >> report.md
-    echo "" >> report.md
-  fi
-fi
-
-# Added Filesの詳細（最大N件）
-if [ "$ADDED" -gt 0 ]; then
-  echo "#### 🟢 Added Files" >> report.md
-  COUNT=0
-  grep "Only in $PR_DIR" diff_result.txt | head -n "$MAX_ADDED_FILES" | while IFS= read -r line; do
-    DIR=$(echo "$line" | sed "s/Only in \(.*\): .*/\1/" | sed "s|$PR_DIR||")
-    FILE=$(echo "$line" | sed 's/Only in .*: //')
-    FULLPATH="$PR_DIR${DIR}/${FILE}"
-    FILEPATH="${DIR}/${FILE}"
-
-    if [ -f "$FULLPATH" ]; then
-      SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
-      echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
-    fi
-    COUNT=$((COUNT + 1))
-  done
-  if [ "$ADDED" -gt "$MAX_ADDED_FILES" ]; then
-    echo "_... and $((ADDED - MAX_ADDED_FILES)) more added files_" >> report.md
-  fi
-  echo "" >> report.md
-fi
-
-# Removed Filesの詳細（最大N件）
-if [ "$REMOVED" -gt 0 ]; then
-  echo "#### 🔴 Removed Files" >> report.md
-  COUNT=0
-  grep "Only in $BASE_DIR" diff_result.txt | head -n "$MAX_REMOVED_FILES" | while IFS= read -r line; do
-    DIR=$(echo "$line" | sed "s/Only in \(.*\): .*/\1/" | sed "s|$BASE_DIR||")
-    FILE=$(echo "$line" | sed 's/Only in .*: //')
-    FULLPATH="$BASE_DIR${DIR}/${FILE}"
-    FILEPATH="${DIR}/${FILE}"
-
-    if [ -f "$FULLPATH" ]; then
-      SIZE=$(stat -f%z "$FULLPATH" 2>/dev/null || stat -c%s "$FULLPATH" 2>/dev/null || echo "unknown")
-      echo "- \`$FILEPATH\` (${SIZE} bytes)" >> report.md
-    fi
-    COUNT=$((COUNT + 1))
-  done
-  if [ "$REMOVED" -gt "$MAX_REMOVED_FILES" ]; then
-    echo "_... and $((REMOVED - MAX_REMOVED_FILES)) more removed files_" >> report.md
-  fi
-  echo "" >> report.md
+  echo "📊 **[View Full Diff]($DIFF_URL)**" >> report.md
 fi
 
 echo "Comparison complete. Report generated in report.md"

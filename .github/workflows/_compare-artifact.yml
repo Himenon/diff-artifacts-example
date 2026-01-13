@@ -91,9 +91,6 @@ jobs:
           DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
           BASE_DIR: .next-base
           PR_DIR: .next-pr
-          MAX_MODIFIED_FILES: "10"
-          MAX_ADDED_FILES: "20"
-          MAX_REMOVED_FILES: "20"
         run: ./.github/scripts/compare-artifacts.sh
 
       # 7. コメント投稿（上書き）
