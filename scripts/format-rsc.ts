@@ -11,13 +11,13 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { globSync } from 'glob';
-import { createFlightResponse, processStringChunk } from '@rsc-parser/react-client';
+import { createFlightResponse, processStringChunk, type Chunk } from '@rsc-parser/react-client';
 import dedent from 'dedent';
 
 interface ChunkData {
   index: number;
   type: string;
-  id: string | number;
+  id: string;
   timestamp: number;
   value?: any;
   code?: string;
@@ -27,6 +27,18 @@ interface ChunkData {
     stack?: string;
   };
   originalValue?: any;
+}
+
+function isChunk(chunk: unknown): chunk is Chunk {
+  return (
+    typeof chunk === 'object' &&
+    chunk !== null &&
+    'type' in chunk &&
+    typeof (chunk as Chunk).type === 'string' &&
+    'id' in chunk &&
+    'timestamp' in chunk &&
+    typeof (chunk as Chunk).timestamp === 'number'
+  );
 }
 
 function parseRscFile(filePath: string): ChunkData[] {
@@ -47,7 +59,12 @@ function parseRscFile(filePath: string): ChunkData[] {
   // Convert chunks to serializable format
   const chunks: ChunkData[] = [];
 
-  flightResponse._chunks.forEach((chunk: any, index: number) => {
+  flightResponse._chunks.forEach((chunk: unknown, index: number) => {
+    if (!isChunk(chunk)) {
+      console.warn(`Skipping invalid chunk at index ${index}`);
+      return;
+    }
+
     const chunkData: ChunkData = {
       index: index + 1,
       type: chunk.type,
@@ -55,27 +72,54 @@ function parseRscFile(filePath: string): ChunkData[] {
       timestamp: chunk.timestamp,
     };
 
-    if (chunk.type === 'module') {
-      chunkData.value = {
-        id: chunk.value.id,
-        name: chunk.value.name,
-        chunks: chunk.value.chunks,
-      };
-    } else if (chunk.type === 'model') {
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'text') {
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'hint') {
-      chunkData.code = chunk.code;
-      chunkData.value = chunk.value;
-    } else if (chunk.type === 'errorDev' || chunk.type === 'errorProd') {
-      chunkData.error = {
-        message: chunk.error.message,
-        digest: chunk.error.digest,
-        stack: chunk.error.stack,
-      };
-    } else {
-      chunkData.originalValue = chunk.originalValue;
+    switch (chunk.type) {
+      case 'module':
+        chunkData.value = chunk.value;
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      case 'model':
+        chunkData.value = chunk.value;
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      case 'text':
+        chunkData.value = chunk.value;
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      case 'hint':
+        chunkData.code = chunk.code;
+        chunkData.value = chunk.value;
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      case 'errorDev':
+      case 'errorProd':
+        chunkData.error = {
+          message: chunk.error.message,
+          digest: chunk.error.digest,
+          stack: chunk.error.stack,
+        };
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      case 'buffer':
+      case 'debugInfo':
+      case 'console':
+      case 'postponeDev':
+      case 'postponeProd':
+      case 'startReadableStream':
+      case 'startAsyncIterable':
+      case 'stopStream':
+        chunkData.value = chunk.value;
+        chunkData.originalValue = chunk.originalValue;
+        break;
+
+      default:
+        // For any unknown types
+        chunkData.originalValue = chunk.originalValue;
+        break;
     }
 
     chunks.push(chunkData);
