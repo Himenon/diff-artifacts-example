@@ -162,7 +162,55 @@ function parseRscFile(filePath: string): ChunkData[] {
   return chunks;
 }
 
-function formatAndSave(inputPath: string): {
+/**
+ * Replaces buildId in RSC content with a fixed template string
+ * @param content - The RSC file content
+ * @returns The content with buildId replaced
+ */
+export function replaceBuildId(content: string): string {
+  const lines = content.split("\n");
+  const processedLines = lines.map((line) => {
+    if (!line.trim()) {
+      return line;
+    }
+
+    try {
+      // RSC format: each line may contain JSON data
+      // Look for buildId field "b" in the line and replace it
+      if (line.includes('"b":"')) {
+        // Parse and reconstruct the line with replaced buildId
+        const colonIndex = line.indexOf(":");
+        if (colonIndex !== -1) {
+          const prefix = line.substring(0, colonIndex + 1);
+          const jsonPart = line.substring(colonIndex + 1);
+
+          try {
+            const parsed = JSON.parse(jsonPart);
+            if (parsed && typeof parsed === "object" && "b" in parsed) {
+              parsed.b = "${buildId}";
+              return prefix + JSON.stringify(parsed);
+            }
+          } catch {
+            // If JSON parsing fails, try regex replacement as fallback
+            return line.replace(/"b":"[^"]*"/, '"b":"${buildId}"');
+          }
+        }
+      }
+      return line;
+    } catch {
+      return line;
+    }
+  });
+
+  return processedLines.join("\n");
+}
+
+/**
+ * Formats and saves an RSC file by replacing buildId
+ * @param inputPath - Path to the input RSC file
+ * @returns Result object with success status and optional error message
+ */
+export function formatAndSave(inputPath: string): {
   success: boolean;
   error?: string;
 } {
@@ -170,43 +218,11 @@ function formatAndSave(inputPath: string): {
     // Read the original RSC file
     const content = readFileSync(inputPath, "utf-8");
 
-    // Process each line and replace buildId values
-    const lines = content.split("\n");
-    const processedLines = lines.map((line) => {
-      if (!line.trim()) {
-        return line;
-      }
-
-      try {
-        // RSC format: each line may contain JSON data
-        // Look for buildId in the line and replace it
-        if (line.includes('"buildId"')) {
-          // Parse and reconstruct the line with replaced buildId
-          const colonIndex = line.indexOf(":");
-          if (colonIndex !== -1) {
-            const prefix = line.substring(0, colonIndex + 1);
-            const jsonPart = line.substring(colonIndex + 1);
-
-            try {
-              const parsed = JSON.parse(jsonPart);
-              if (parsed && typeof parsed === "object" && "buildId" in parsed) {
-                parsed.buildId = "${buildId}";
-                return prefix + JSON.stringify(parsed);
-              }
-            } catch {
-              // If JSON parsing fails, try regex replacement as fallback
-              return line.replace(/"buildId":"[^"]*"/, '"buildId":"${buildId}"');
-            }
-          }
-        }
-        return line;
-      } catch {
-        return line;
-      }
-    });
+    // Replace buildId in content
+    const processedContent = replaceBuildId(content);
 
     // Write back to the original file
-    writeFileSync(inputPath, processedLines.join("\n"), "utf-8");
+    writeFileSync(inputPath, processedContent, "utf-8");
 
     return { success: true };
   } catch (error: any) {
@@ -256,54 +272,62 @@ function processGlobPattern(pattern: string): void {
   }
 }
 
-// Main execution
-const args = process.argv.slice(2);
+/**
+ * Main CLI execution function
+ * @param args - Command line arguments (typically process.argv.slice(2))
+ */
+export function main(args: string[]): void {
+  if (args.length === 0) {
+    console.error(dedent`
+      Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern>
 
-if (args.length === 0) {
-  console.error(dedent`
-    Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern>
+      Examples:
+        Single file:
+          tsx scripts/format-rsc.ts input.rsc
 
-    Examples:
-      Single file:
-        tsx scripts/format-rsc.ts input.rsc
+        Multiple files (glob):
+          tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
+          tsx scripts/format-rsc.ts "artifacts/*.rsc"
 
-      Multiple files (glob):
-        tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
-        tsx scripts/format-rsc.ts "artifacts/*.rsc"
+      Output:
+        Replaces buildId in the original .rsc files with a fixed string "\${buildId}"
+    `);
+    process.exit(1);
+  }
 
-    Output:
-      Replaces buildId in the original .rsc files with a fixed string "${buildId}"
-  `);
-  process.exit(1);
-}
+  const pattern = args[0];
 
-const pattern = args[0];
+  try {
+    // Check if pattern contains glob special characters
+    const isGlob = /[*?[\]{}]/.test(pattern);
 
-try {
-  // Check if pattern contains glob special characters
-  const isGlob = /[*?[\]{}]/.test(pattern);
+    if (isGlob) {
+      // Process multiple files using glob pattern
+      processGlobPattern(pattern);
+    } else {
+      // Process single file
+      console.log(`\nProcessing single file: ${pattern}`);
+      const result = formatAndSave(pattern);
 
-  if (isGlob) {
-    // Process multiple files using glob pattern
-    processGlobPattern(pattern);
-  } else {
-    // Process single file
-    console.log(`\nProcessing single file: ${pattern}`);
-    const result = formatAndSave(pattern);
+      if (!result.success) {
+        console.error(`\n✗ Error: ${result.error}`);
+        process.exit(1);
+      }
 
-    if (!result.success) {
-      console.error(`\n✗ Error: ${result.error}`);
-      process.exit(1);
+      console.log("\n✓ Successfully completed\n");
     }
-
-    console.log("\n✓ Successfully completed\n");
+  } catch (error: any) {
+    console.error("\n✗ Unexpected error:");
+    console.error(`  ${error.message}`);
+    if (error.stack) {
+      console.error("\nStack trace:");
+      console.error(error.stack);
+    }
+    process.exit(1);
   }
-} catch (error: any) {
-  console.error("\n✗ Unexpected error:");
-  console.error(`  ${error.message}`);
-  if (error.stack) {
-    console.error("\nStack trace:");
-    console.error(error.stack);
-  }
-  process.exit(1);
 }
+
+// Run CLI if this file is executed directly
+// if (require.main === module) {
+main(process.argv.slice(2));
+// }
