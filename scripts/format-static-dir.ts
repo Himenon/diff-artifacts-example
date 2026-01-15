@@ -97,12 +97,15 @@ export function formatStaticDir(baseDir: string): {
       console.log(`Static directory not found: ${staticDir}`);
     }
 
-    // Replace BUILD_ID in build-manifest.json
-    const buildManifestPath = join(baseDir, "build-manifest.json");
-    if (existsSync(buildManifestPath)) {
-      replaceBuildIdInManifest(buildManifestPath, BUILD_ID);
-    } else {
-      console.log(`build-manifest.json not found: ${buildManifestPath}`);
+    // Replace BUILD_ID in manifest files
+    const manifestFiles = ["build-manifest.json", "fallback-build-manifest.json"];
+    for (const manifestFile of manifestFiles) {
+      const manifestPath = join(baseDir, manifestFile);
+      if (existsSync(manifestPath)) {
+        replaceBuildIdInManifest(manifestPath, BUILD_ID);
+      } else {
+        console.log(`${manifestFile} not found: ${manifestPath}`);
+      }
     }
 
     return { success: true };

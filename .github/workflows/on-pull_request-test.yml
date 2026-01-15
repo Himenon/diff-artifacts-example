@@ -56,3 +56,5 @@ jobs:
         node_modules
         cache
         trace
+        trace-build
+      
