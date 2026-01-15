@@ -6,8 +6,8 @@ DIR="${1:-.next}"
 
 echo "Formatting build directory: $DIR"
 
-# RSCファイルをJSON形式にフォーマット
-pnpm exec node ./scripts/format-rsc.ts "$DIR/**/*.rsc"
+# RSCファイルをフォーマット（buildIdをマスキング）し、JSON形式も生成
+node scripts/cli.ts --json "$DIR/**/*.rsc"
 
 # oxfmtで整形
 pnpm exec oxfmt --write "$DIR"
