@@ -9,6 +9,9 @@ echo "Formatting build directory: $DIR"
 # RSCファイルをフォーマット（buildIdをマスキング）し、JSON形式も生成
 node scripts/cli.ts --json "$DIR/**/*.rsc"
 
+# HTMLファイルをフォーマット（BUILD_IDをマスキング）
+node scripts/cli.ts --html "$DIR"
+
 # oxfmtで整形
 pnpm exec oxfmt --write "$DIR"
 

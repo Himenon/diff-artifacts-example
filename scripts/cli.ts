@@ -8,11 +8,14 @@
  *   pnpm exec node scripts/cli.ts path/to/file.rsc
  *   pnpm exec node scripts/cli.ts "glob-pattern"
  *   pnpm exec node scripts/cli.ts --json path/to/file.rsc
+ *   pnpm exec node scripts/cli.ts --html .next
  */
 
 import dedent from "dedent";
 import { globSync } from "glob";
+import { join } from "path";
 import { formatAndSave } from "./format-rsc.ts";
+import { formatHtmlFiles } from "./format-nextjs-html.ts";
 
 function processGlobPattern(pattern: string, options: { generateJson?: boolean } = {}): void {
   // Find all matching files
@@ -62,11 +65,14 @@ function processGlobPattern(pattern: string, options: { generateJson?: boolean }
 export function main(args: string[]): void {
   // Parse arguments
   let generateJson = false;
+  let htmlMode = false;
   const patterns: string[] = [];
 
   for (const arg of args) {
     if (arg === "--json" || arg === "-j") {
       generateJson = true;
+    } else if (arg === "--html") {
+      htmlMode = true;
     } else {
       patterns.push(arg);
     }
@@ -74,31 +80,55 @@ export function main(args: string[]): void {
 
   if (patterns.length === 0) {
     console.error(dedent`
-      Usage: tsx scripts/cli.ts [options] <path-or-glob-pattern>
+      Usage: node scripts/cli.ts [options] <path-or-glob-pattern>
 
       Options:
         --json, -j    Generate .rsc.json files with parsed content
+        --html        Format HTML files by replacing BUILD_ID
 
       Examples:
-        Single file:
-          tsx scripts/cli.ts input.rsc
-          tsx scripts/cli.ts --json input.rsc
+        RSC files:
+          node scripts/cli.ts input.rsc
+          node scripts/cli.ts --json input.rsc
+          node scripts/cli.ts ".next/server/app/*.rsc"
+          node scripts/cli.ts --json "artifacts/*.rsc"
 
-        Multiple files (glob):
-          tsx scripts/cli.ts ".next/server/app/*.rsc"
-          tsx scripts/cli.ts --json "artifacts/*.rsc"
+        HTML files:
+          node scripts/cli.ts --html .next
 
       Output:
-        Replaces buildId in the original .rsc files with a fixed string "\${buildId}"
-        If --json is specified, also creates .rsc.json files with parsed content
+        RSC mode: Replaces buildId in .rsc files with "\${buildId}"
+        HTML mode: Replaces BUILD_ID in .html files with "\${buildId}"
     `);
     process.exit(1);
   }
 
-  const pattern = patterns[0];
-  const options = { generateJson };
-
   try {
+    // HTML mode
+    if (htmlMode) {
+      const baseDir = patterns[0];
+      const buildIdPath = join(baseDir, "BUILD_ID");
+      const htmlPattern = join(baseDir, "**/*.html");
+
+      console.log(`\nProcessing HTML files in: ${baseDir}`);
+      console.log(`BUILD_ID file: ${buildIdPath}`);
+      console.log(`HTML pattern: ${htmlPattern}\n`);
+
+      const result = formatHtmlFiles(buildIdPath, htmlPattern);
+
+      if (!result.success) {
+        console.error(`\n✗ Error: ${result.error}`);
+        process.exit(1);
+      }
+
+      console.log(`\n✓ Successfully formatted ${result.fileCount} HTML file(s)\n`);
+      return;
+    }
+
+    // RSC mode (original behavior)
+    const pattern = patterns[0];
+    const options = { generateJson };
+
     // Check if pattern contains glob special characters
     const isGlob = /[*?[\]{}]/.test(pattern);
 
