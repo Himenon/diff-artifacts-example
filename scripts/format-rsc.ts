@@ -106,7 +106,14 @@ function parseRscFile(filePath: string): ChunkData[] {
         break;
 
       case "model":
-        chunkData.value = chunk.value;
+        if (chunk.value && typeof chunk.value === "object" && "buildId" in chunk.value) {
+          chunkData.value = {
+            ...chunk.value,
+            buildId: "${buildId}",
+          };
+        } else {
+          chunkData.value = chunk.value;
+        }
         break;
 
       case "text":
