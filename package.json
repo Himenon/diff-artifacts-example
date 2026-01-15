@@ -40,12 +40,12 @@
   },
   "packageManager": "pnpm@10.27.0",
   "engines": {
-    "node": "24.12.0"
+    "node": "^24.13.0"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "24.12.0",
+      "version": "^24.13.0",
       "onFail": "download"
     }
   }
