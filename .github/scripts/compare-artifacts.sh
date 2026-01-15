@@ -35,7 +35,7 @@ $COMMENT_MARKER
 
 EOF
 
-# ファイルレベルの差分を取得
+# ファイルレベルの差分を取得（フォーマット前の生データで）
 diff -rq "$BASE_DIR" "$PR_DIR" > diff_result.txt || true
 
 if [ ! -s diff_result.txt ]; then
@@ -48,9 +48,9 @@ fi
 echo "HAS_DIFF=true" >> "$GITHUB_OUTPUT"
 
 # 統計情報を収集
-ADDED=$(grep -c "Only in $PR_DIR" diff_result.txt || echo 0)
-REMOVED=$(grep -c "Only in $BASE_DIR" diff_result.txt || echo 0)
-MODIFIED=$(grep -c "Files .* differ" diff_result.txt || echo 0)
+ADDED=$(grep "Only in $PR_DIR" diff_result.txt | wc -l | tr -d ' ')
+REMOVED=$(grep "Only in $BASE_DIR" diff_result.txt | wc -l | tr -d ' ')
+MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
