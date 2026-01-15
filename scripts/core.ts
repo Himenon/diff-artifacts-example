@@ -72,7 +72,8 @@ export async function execMaskBuildId(
   console.log(`\nFound ${files.length} files to process`);
 
   // 2. Process all files in parallel, ignoring errors
-  await Promise.all(
+  console.log("Starting parallel file processing...");
+  const results = await Promise.all(
     files.map(async (file): Promise<void> => {
       if (file.endsWith(buildIdPath)) {
         return Promise.resolve();
@@ -83,5 +84,6 @@ export async function execMaskBuildId(
     }),
   );
 
+  console.log(`Parallel processing completed. Processed ${results.length} files.`);
   console.log("\n✓ Completed");
 }
