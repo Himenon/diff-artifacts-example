@@ -1,17 +1,11 @@
 /**
- * RSC File Formatter
+ * RSC File Formatter - Core Logic
  *
- * Converts .rsc files to human-readable .rsc.json format
- *
- * Usage:
- *   pnpm exec node scripts/format-rsc.ts path/to/file.rsc
- *   pnpm exec node scripts/format-rsc.ts "glob-pattern"
+ * Normalizes .rsc files by replacing buildId with a fixed string using AST manipulation
  */
 
 import { type Chunk, createFlightResponse, processStringChunk } from "@rsc-parser/react-client";
-import dedent from "dedent";
 import { readFileSync, writeFileSync } from "fs";
-import { globSync } from "glob";
 
 /**
  * RSCチャンクのフォーマット済みデータ
@@ -69,22 +63,44 @@ function isChunk(chunk: unknown): chunk is Chunk {
   );
 }
 
-function parseRscFile(filePath: string): ChunkData[] {
-  // Read file content
-  const content = readFileSync(filePath, "utf-8");
-
-  // Create Flight Response (true = development mode)
+/**
+ * Parses RSC file content and returns the FlightResponse object with line mapping
+ * @param content - The RSC file content
+ * @returns Object with FlightResponse and line mapping
+ */
+function parseRscContent(content: string): {
+  flightResponse: any;
+  lines: string[];
+  lineMap: Map<string, number>;
+} {
   const flightResponse = createFlightResponse(true);
+  const lines = content.split("\n");
+  const lineMap = new Map<string, number>();
 
-  // Process the content as string chunks
-  const lines = content.split("\n").filter((line) => line.trim().length > 0);
+  lines.forEach((line, index) => {
+    if (line.trim().length > 0) {
+      // Extract chunk ID from the line (format: "ID:...")
+      const colonIndex = line.indexOf(":");
+      if (colonIndex > 0) {
+        const id = line.substring(0, colonIndex);
+        lineMap.set(id, index);
+      }
+      processStringChunk(flightResponse, line + "\n");
+    }
+  });
 
-  // Process each line as a chunk
-  for (const line of lines) {
-    processStringChunk(flightResponse, line + "\n");
-  }
+  return { flightResponse, lines, lineMap };
+}
 
-  // Convert chunks to serializable format
+/**
+ * Parses RSC file and returns chunks with buildId replaced
+ * @param filePath - Path to the RSC file
+ * @returns Array of ChunkData with buildId masked
+ */
+function parseRscFile(filePath: string): ChunkData[] {
+  const content = readFileSync(filePath, "utf-8");
+  const { flightResponse } = parseRscContent(content);
+
   const chunks: ChunkData[] = [];
 
   flightResponse._chunks.forEach((chunk: unknown, index: number) => {
@@ -106,7 +122,14 @@ function parseRscFile(filePath: string): ChunkData[] {
         break;
 
       case "model":
-        chunkData.value = chunk.value;
+        if (chunk.value && typeof chunk.value === "object" && "buildId" in chunk.value) {
+          chunkData.value = {
+            ...chunk.value,
+            buildId: "${buildId}",
+          };
+        } else {
+          chunkData.value = chunk.value;
+        }
         break;
 
       case "text":
@@ -145,7 +168,6 @@ function parseRscFile(filePath: string): ChunkData[] {
         chunkData.value = chunk.value;
         break;
       default:
-        // For any unknown types, just keep the basic chunk data
         throw new Error(`Unknown chunk type: ${chunk satisfies never}`);
     }
 
@@ -155,126 +177,149 @@ function parseRscFile(filePath: string): ChunkData[] {
   return chunks;
 }
 
-function formatAndSave(inputPath: string): {
+/**
+ * Serializes a chunk back to RSC format line
+ * @param chunk - The chunk to serialize
+ * @returns RSC format line
+ */
+function serializeChunk(chunk: Chunk): string {
+  const id = chunk.id;
+  let value: any;
+
+  switch (chunk.type) {
+    case "model":
+      value = chunk.value;
+      break;
+    case "module":
+      value = chunk.value;
+      break;
+    case "text":
+      value = chunk.value;
+      break;
+    case "hint":
+      value = chunk.value;
+      break;
+    case "errorDev":
+    case "errorProd":
+      value = chunk.error;
+      break;
+    case "postponeDev":
+    case "postponeProd":
+      value = chunk.error;
+      break;
+    default:
+      value = (chunk as any).value;
+  }
+
+  return `${id}:${JSON.stringify(value)}`;
+}
+
+/**
+ * Replaces buildId in RSC content with a fixed template string using AST manipulation
+ * @param content - The RSC file content
+ * @returns The content with buildId replaced
+ */
+export function replaceBuildId(content: string): string {
+  // Parse RSC content into FlightResponse with line mapping
+  const { flightResponse, lines, lineMap } = parseRscContent(content);
+
+  // Process each chunk and replace buildId in the original lines
+  flightResponse._chunks.forEach((chunk: unknown) => {
+    if (!isChunk(chunk)) {
+      return;
+    }
+
+    // Replace buildId in model chunks
+    if (chunk.type === "model" && chunk.value && typeof chunk.value === "object") {
+      const hasBuildId = "buildId" in chunk.value || "b" in chunk.value;
+      if (hasBuildId) {
+        // Find the original line for this chunk
+        const lineIndex = lineMap.get(chunk.id);
+        if (lineIndex !== undefined) {
+          const originalLine = lines[lineIndex];
+          const colonIndex = originalLine.indexOf(":");
+          if (colonIndex !== -1) {
+            const prefix = originalLine.substring(0, colonIndex + 1);
+            const jsonPart = originalLine.substring(colonIndex + 1);
+
+            try {
+              const parsed = JSON.parse(jsonPart);
+              // Update buildId fields
+              if ("buildId" in parsed) {
+                parsed.buildId = "${buildId}";
+              }
+              if ("b" in parsed) {
+                parsed.b = "${buildId}";
+              }
+              // Reconstruct the line
+              lines[lineIndex] = prefix + JSON.stringify(parsed);
+            } catch (error) {
+              // If parsing fails, use regex replacement as fallback
+              let newLine = originalLine;
+              newLine = newLine.replace(/"buildId":"[^"]*"/, '"buildId":"${buildId}"');
+              newLine = newLine.replace(/"b":"[^"]*"/, '"b":"${buildId}"');
+              lines[lineIndex] = newLine;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return lines.join("\n");
+}
+
+/**
+ * Formats and saves an RSC file by replacing buildId
+ * @param inputPath - Path to the input RSC file
+ * @param options - Options for formatting
+ * @returns Result object with success status and optional error message
+ */
+export function formatAndSave(
+  inputPath: string,
+  options: { generateJson?: boolean } = {},
+): {
   success: boolean;
   error?: string;
 } {
-  const outputPath = `${inputPath}.json`;
-
   try {
-    // Parse the RSC file
-    const chunks = parseRscFile(inputPath);
+    // Read the original RSC file
+    const content = readFileSync(inputPath, "utf-8");
 
-    // Create output JSON
-    const output: OutputData = {
-      metadata: {
-        inputFile: inputPath,
-        outputFile: outputPath,
-        chunkCount: chunks.length,
-      },
-      chunks,
-    };
+    // Replace buildId in content
+    const processedContent = replaceBuildId(content);
 
-    // Write to JSON file
-    writeFileSync(outputPath, JSON.stringify(output, null, 2), "utf-8");
+    // Write back to the original file
+    writeFileSync(inputPath, processedContent, "utf-8");
+
+    // Generate JSON file if requested
+    if (options.generateJson) {
+      const outputPath = `${inputPath}.json`;
+      const chunks = parseRscFile(inputPath);
+
+      const workDir = process.cwd();
+      const formatPath = (path: string) => {
+        if (path.startsWith(workDir)) {
+          return path.replace(workDir, "${workDir}");
+        }
+        return path;
+      };
+
+      const output: OutputData = {
+        metadata: {
+          inputFile: formatPath(inputPath),
+          outputFile: formatPath(outputPath),
+          chunkCount: chunks.length,
+        },
+        chunks,
+      };
+
+      writeFileSync(outputPath, JSON.stringify(output, null, 2), "utf-8");
+    }
 
     return { success: true };
   } catch (error: any) {
     const errorMsg = error.message || "Unknown error";
     return { success: false, error: errorMsg };
   }
-}
-
-function processGlobPattern(pattern: string): void {
-  // Find all matching files
-  const files = globSync(pattern, {
-    nodir: true,
-    absolute: false,
-  });
-
-  if (files.length === 0) {
-    console.log("No files found matching the pattern.");
-    return;
-  }
-
-  console.log(`Processing ${files.length} file(s):`);
-  files.forEach((file) => {
-    console.log(`  - ${file}`);
-  });
-  console.log("");
-
-  // Process each file
-  let successCount = 0;
-  let failCount = 0;
-  const failedFiles: string[] = [];
-
-  files.forEach((file) => {
-    const result = formatAndSave(file);
-
-    if (result.success) {
-      successCount++;
-    } else {
-      failCount++;
-      failedFiles.push(`${file}: ${result.error}`);
-    }
-  });
-
-  if (failCount > 0) {
-    console.error("\nFailed files:");
-    failedFiles.forEach((file) => console.error(`  - ${file}`));
-    process.exit(1);
-  }
-}
-
-// Main execution
-const args = process.argv.slice(2);
-
-if (args.length === 0) {
-  console.error(dedent`
-    Usage: tsx scripts/format-rsc.ts <path-or-glob-pattern>
-
-    Examples:
-      Single file:
-        tsx scripts/format-rsc.ts input.rsc
-
-      Multiple files (glob):
-        tsx scripts/format-rsc.ts ".next/server/app/page.rsc"
-        tsx scripts/format-rsc.ts "artifacts/*.rsc"
-
-    Output:
-      Creates .rsc.json files next to each input file
-      (e.g., input.rsc → input.rsc.json)
-  `);
-  process.exit(1);
-}
-
-const pattern = args[0];
-
-try {
-  // Check if pattern contains glob special characters
-  const isGlob = /[*?[\]{}]/.test(pattern);
-
-  if (isGlob) {
-    // Process multiple files using glob pattern
-    processGlobPattern(pattern);
-  } else {
-    // Process single file
-    console.log(`\nProcessing single file: ${pattern}`);
-    const result = formatAndSave(pattern);
-
-    if (!result.success) {
-      console.error(`\n✗ Error: ${result.error}`);
-      process.exit(1);
-    }
-
-    console.log("\n✓ Successfully completed\n");
-  }
-} catch (error: any) {
-  console.error("\n✗ Unexpected error:");
-  console.error(`  ${error.message}`);
-  if (error.stack) {
-    console.error("\nStack trace:");
-    console.error(error.stack);
-  }
-  process.exit(1);
 }

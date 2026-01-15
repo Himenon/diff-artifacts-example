@@ -9,6 +9,11 @@ on:
       base_ref:
         required: true
         type: string
+      gitignore_patterns:
+        required: false
+        type: string
+        default: "node_modules/"
+        description: "Gitignore patterns to exclude from diff (space-separated)"
     secrets:
       app_id:
         required: true
@@ -34,7 +39,7 @@ jobs:
       - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version-file: package.json
-          cache: 'pnpm'
+          cache: "pnpm"
       - run: pnpm i --frozen-lockfile
 
       # 1. Generate GitHub App Token
@@ -97,6 +102,7 @@ jobs:
           DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
           BASE_DIR: .next-base
           PR_DIR: .next-pr
+          GITIGNORE_PATTERNS: ${{ inputs.gitignore_patterns }}
         run: ./.github/scripts/compare-artifacts.sh
 
       # 7. コメント投稿（上書き）

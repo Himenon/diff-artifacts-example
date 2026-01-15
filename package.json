@@ -2,15 +2,18 @@
   "name": "compare-action",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "format-rsc": "node scripts/cli.ts",
     "postinstall": "lefthook install",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@rsc-parser/embedded": "^1.1.2",
@@ -32,7 +35,8 @@
     "oxlint": "^1.39.0",
     "sort-package-json": "^3.6.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.17"
   },
   "packageManager": "pnpm@10.27.0",
   "engines": {
