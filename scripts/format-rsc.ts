@@ -1,7 +1,7 @@
 /**
  * RSC File Formatter
  *
- * Converts .rsc files to human-readable .rsc.json format
+ * Normalizes .rsc files by replacing buildId with a fixed string
  *
  * Usage:
  *   pnpm exec node scripts/format-rsc.ts path/to/file.rsc
@@ -166,33 +166,47 @@ function formatAndSave(inputPath: string): {
   success: boolean;
   error?: string;
 } {
-  const outputPath = `${inputPath}.json`;
-
   try {
-    // Parse the RSC file
-    const chunks = parseRscFile(inputPath);
+    // Read the original RSC file
+    const content = readFileSync(inputPath, "utf-8");
 
-    // Get working directory and replace it with ${workDir} in paths
-    const workDir = process.cwd();
-    const formatPath = (path: string) => {
-      if (path.startsWith(workDir)) {
-        return path.replace(workDir, "${workDir}");
+    // Process each line and replace buildId values
+    const lines = content.split("\n");
+    const processedLines = lines.map((line) => {
+      if (!line.trim()) {
+        return line;
       }
-      return path;
-    };
 
-    // Create output JSON
-    const output: OutputData = {
-      metadata: {
-        inputFile: formatPath(inputPath),
-        outputFile: formatPath(outputPath),
-        chunkCount: chunks.length,
-      },
-      chunks,
-    };
+      try {
+        // RSC format: each line may contain JSON data
+        // Look for buildId in the line and replace it
+        if (line.includes('"buildId"')) {
+          // Parse and reconstruct the line with replaced buildId
+          const colonIndex = line.indexOf(":");
+          if (colonIndex !== -1) {
+            const prefix = line.substring(0, colonIndex + 1);
+            const jsonPart = line.substring(colonIndex + 1);
 
-    // Write to JSON file
-    writeFileSync(outputPath, JSON.stringify(output, null, 2), "utf-8");
+            try {
+              const parsed = JSON.parse(jsonPart);
+              if (parsed && typeof parsed === "object" && "buildId" in parsed) {
+                parsed.buildId = "${buildId}";
+                return prefix + JSON.stringify(parsed);
+              }
+            } catch {
+              // If JSON parsing fails, try regex replacement as fallback
+              return line.replace(/"buildId":"[^"]*"/, '"buildId":"${buildId}"');
+            }
+          }
+        }
+        return line;
+      } catch {
+        return line;
+      }
+    });
+
+    // Write back to the original file
+    writeFileSync(inputPath, processedLines.join("\n"), "utf-8");
 
     return { success: true };
   } catch (error: any) {
@@ -258,8 +272,7 @@ if (args.length === 0) {
         tsx scripts/format-rsc.ts "artifacts/*.rsc"
 
     Output:
-      Creates .rsc.json files next to each input file
-      (e.g., input.rsc → input.rsc.json)
+      Replaces buildId in the original .rsc files with a fixed string "${buildId}"
   `);
   process.exit(1);
 }
