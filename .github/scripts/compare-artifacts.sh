@@ -35,14 +35,7 @@ $COMMENT_MARKER
 
 EOF
 
-# アーティファクトをフォーマット（差分チェック前に実行）
-echo "Formatting base artifacts..."
-./scripts/format-build-dir.sh "$BASE_DIR"
-
-echo "Formatting PR artifacts..."
-./scripts/format-build-dir.sh "$PR_DIR"
-
-# ファイルレベルの差分を取得
+# ファイルレベルの差分を取得（フォーマット前の生データで）
 diff -rq "$BASE_DIR" "$PR_DIR" > diff_result.txt || true
 
 if [ ! -s diff_result.txt ]; then
@@ -86,7 +79,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     git checkout -b "$MAIN_BRANCH"
   fi
 
-  # mainのアーティファクトをコピー（フォーマット済み）
+  # mainのアーティファクトをコピー
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${BASE_DIR}/." .
 
@@ -95,6 +88,10 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
+
+  # フォーマット実行（git add の前）
+  echo "Formatting base artifacts before commit..."
+  ../scripts/format-build-dir.sh .
 
   git add -A
   if git diff --staged --quiet; then
@@ -116,7 +113,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
   fi
 
-  # PRのアーティファクトをコピー（フォーマット済み）
+  # PRのアーティファクトをコピー
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${PR_DIR}/." .
 
@@ -125,6 +122,10 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
+
+  # フォーマット実行（git add の前）
+  echo "Formatting PR artifacts before commit..."
+  ../scripts/format-build-dir.sh .
 
   git add -A
   if git diff --staged --quiet; then
