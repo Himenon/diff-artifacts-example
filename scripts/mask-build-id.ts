@@ -37,7 +37,7 @@ function replaceBuildId(content: string, buildId: string): string {
  */
 async function maskFileContentByBuildId(filePath: string, buildId: string): Promise<void> {
   const content = await readFile(filePath, "utf-8");
-  if (content.includes(buildId)) {
+  if (!content.includes(buildId)) {
     return;
   }
   const modifiedContent = replaceBuildId(content, buildId);
