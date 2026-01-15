@@ -55,10 +55,10 @@ MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
 # アーティファクトをフォーマット（コピー前に実行）
-echo "Formatting base artifacts..."
+echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
 ./scripts/format-build-dir.sh "$BASE_DIR"
 
-echo "Formatting PR artifacts..."
+echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
 ./scripts/format-build-dir.sh "$PR_DIR"
 
 # diff-viewerリポジトリにプッシュ
@@ -71,7 +71,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git config user.name "github-actions[bot]"
   git config user.email "github-actions[bot]@users.noreply.github.com"
 
-  echo "Using gitignore patterns: $GITIGNORE_PATTERNS"
+  echo "Using gitignore patterns:"
+  echo "$GITIGNORE_PATTERNS"
 
   # 1. build-main ブランチの作成・更新
   echo "Creating/updating branch: $MAIN_BRANCH"
@@ -100,7 +101,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   git add -A
   if git diff --staged --quiet; then
-    echo "No changes in main branch artifacts"
+    echo "[INFO] No changes in main branch artifacts"
   else
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
     git push origin "$MAIN_BRANCH"
