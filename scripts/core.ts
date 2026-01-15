@@ -25,7 +25,7 @@ export async function readBuildId(buildIdPath: string): Promise<string> {
 /**
  * Replace BUILD_ID in content
  */
-function replaceBuildId(content: string, buildId: string): string {
+export function replaceBuildId(content: string, buildId: string): string {
   const escapedBuildId = buildId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(escapedBuildId, "g");
   return content.replace(regex, "${BUILD_ID}");

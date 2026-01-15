@@ -28,6 +28,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
       - run: |
           pnpm build
+          pnpm test
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
