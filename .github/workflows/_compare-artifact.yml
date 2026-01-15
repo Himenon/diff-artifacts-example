@@ -110,36 +110,42 @@ jobs:
         if: steps.compare.outputs.HAS_DIFF == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
           DIFF_URL: ${{ steps.compare.outputs.DIFF_URL }}
+          COMMENT_MARKER: ${{ env.COMMENT_MARKER }}
         run: |
-          COMMENT_BODY=$(cat report.md)
+          BODY=$(cat report.md)
 
           # DIFF_URLが設定されていれば、コメントに追記
           if [ -n "$DIFF_URL" ]; then
-            echo "" >> /tmp/comment.md
-            echo "---" >> /tmp/comment.md
-            echo "" >> /tmp/comment.md
-            echo "🔗 **View full diff**: $DIFF_URL" >> /tmp/comment.md
-            COMMENT_BODY=$(cat report.md /tmp/comment.md)
+            BODY="${BODY}"$'\n\n'"---"$'\n\n'"🔗 **View full diff**: $DIFF_URL"
           fi
 
-          # 既存のコメントを検索
-          EXISTING_COMMENT_ID=$(gh api \
-            repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" \
-            | head -n 1)
+          # マーカーをコメントの最後に追加
+          BODY="${BODY}"$'\n'"${COMMENT_MARKER}"
 
-          if [ -n "$EXISTING_COMMENT_ID" ]; then
+          # 既存のコメントを検索（マーカーで識別）
+          COMMENT_ID=$(gh api repos/$GH_REPO/issues/$NUMBER/comments \
+            --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" \
+            2>/dev/null | head -n 1)
+
+          if [ -n "$COMMENT_ID" ]; then
             # 既存のコメントを更新
-            gh api \
-              repos/${{ github.repository }}/issues/comments/$EXISTING_COMMENT_ID \
-              -X PATCH \
-              -f body="$COMMENT_BODY"
-            echo "Updated existing comment: $EXISTING_COMMENT_ID"
-            echo "Diff URL: $DIFF_URL"
+            if gh api repos/$GH_REPO/issues/comments/$COMMENT_ID -X PATCH -f body="$BODY" > /dev/null 2>&1; then
+              echo "既存のコメント #$COMMENT_ID を更新しました"
+              echo "Diff URL: $DIFF_URL"
+            else
+              echo "エラー: コメントの更新に失敗しました (Comment ID: $COMMENT_ID)"
+              exit 1
+            fi
           else
             # 新規コメントを作成
-            gh pr comment ${{ github.event.pull_request.number }} --body "$COMMENT_BODY"
-            echo "Created new comment"
-            echo "Diff URL: $DIFF_URL"
+            if gh pr comment "$NUMBER" --body "$BODY" > /dev/null 2>&1; then
+              echo "新規コメントを作成しました"
+              echo "Diff URL: $DIFF_URL"
+            else
+              echo "エラー: コメントの作成に失敗しました (PR: $NUMBER)"
+              exit 1
+            fi
           fi
