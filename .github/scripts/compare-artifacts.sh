@@ -75,15 +75,15 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   echo "$GITIGNORE_PATTERNS"
 
   # 1. build-main ブランチの作成・更新
-  echo "Creating/updating branch: $MAIN_BRANCH"
+  echo "[BASE] Creating/updating branch: $MAIN_BRANCH"
   git fetch origin
 
   # リモートブランチが存在するか確認
   if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
-    echo "Remote branch exists, checking out from origin"
+    echo "[BASE] Remote branch exists, checking out from origin"
     git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
   else
-    echo "Remote branch does not exist, creating new branch"
+    echo "[BASE] Remote branch does not exist, creating new branch"
     git checkout -b "$MAIN_BRANCH"
   fi
 
@@ -102,7 +102,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git add -A
   git status
   if git diff --staged --quiet; then
-    echo "[INFO] No changes in main branch artifacts"
+    echo "[BASE] No changes in main branch artifacts"
   else
     git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
@@ -110,7 +110,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   fi
 
   # 2. build-pr ブランチの作成・更新
-  echo "Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
+  echo "[PR] Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
 
   # 常に最新のmainブランチから作成（古いbaseとの比較を避けるため）
   git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
