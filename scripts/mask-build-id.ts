@@ -52,5 +52,8 @@ async function main() {
 
 // Run if executed directly
 if (process.argv[1] && process.argv[1].endsWith("mask-build-id.ts")) {
-  main();
+  main().catch((error) => {
+    console.error("Error:", error);
+    process.exit(1);
+  });
 }

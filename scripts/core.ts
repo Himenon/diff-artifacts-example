@@ -40,8 +40,13 @@ async function maskFileContentByBuildId(filePath: string, buildId: string): Prom
     return;
   }
   const modifiedContent = replaceBuildId(content, buildId);
-  await writeFile(filePath, modifiedContent, "utf-8");
   console.info(`✨️ ${relative(process.cwd(), filePath)}`);
+  await writeFile(filePath, modifiedContent, "utf-8");
+  // Verify write
+  const verifyContent = await readFile(filePath, "utf-8");
+  if (verifyContent !== modifiedContent) {
+    console.error(`⚠️ Write verification failed for ${filePath}`);
+  }
 }
 
 /**
