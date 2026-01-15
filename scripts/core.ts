@@ -26,9 +26,7 @@ export async function readBuildId(buildIdPath: string): Promise<string> {
  * Replace BUILD_ID in content
  */
 export function replaceBuildId(content: string, buildId: string): string {
-  const escapedBuildId = buildId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(escapedBuildId, "g");
-  return content.replace(regex, "${BUILD_ID}");
+  return content.replaceAll(buildId, "${BUILD_ID}");
 }
 
 /**
@@ -41,7 +39,7 @@ async function maskFileContentByBuildId(filePath: string, buildId: string): Prom
     return;
   }
   const modifiedContent = replaceBuildId(content, buildId);
-  console.info(`✨️ ${relative(process.cwd(), filePath)}`);
+  console.info(`✨️ ${relative(process.cwd(), filePath)} (Replaced: ${buildId})`);
   await writeFile(filePath, modifiedContent, "utf-8");
   // Verify write
   const verifyContent = await readFile(filePath, "utf-8");
