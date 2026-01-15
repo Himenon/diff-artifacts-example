@@ -32,7 +32,8 @@
     "oxlint": "^1.39.0",
     "sort-package-json": "^3.6.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.17"
   },
   "packageManager": "pnpm@10.27.0",
   "engines": {
