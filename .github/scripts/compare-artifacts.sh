@@ -136,7 +136,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   else
     git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
-    git push origin "$MAIN_BRANCH"
+    git push origin "$MAIN_BRANCH" -f
   fi
 
   # 2. build-pr ブランチの作成・更新
