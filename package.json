@@ -10,7 +10,8 @@
     "postinstall": "lefthook install",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@rsc-parser/embedded": "^1.1.2",
