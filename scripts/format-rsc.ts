@@ -299,10 +299,7 @@ export function formatAndSave(
 
       const workDir = process.cwd();
       const formatPath = (path: string) => {
-        if (path.startsWith(workDir)) {
-          return path.replace(workDir, "${workDir}");
-        }
-        return path;
+        return ["${workDir}", ...path.split("/").slice(1)].join("/");
       };
 
       const output: OutputData = {
