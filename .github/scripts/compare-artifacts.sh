@@ -54,6 +54,13 @@ MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
+# アーティファクトをフォーマット（コピー前に実行）
+echo "Formatting base artifacts..."
+./scripts/format-build-dir.sh "$BASE_DIR"
+
+echo "Formatting PR artifacts..."
+./scripts/format-build-dir.sh "$PR_DIR"
+
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."
 MAIN_BRANCH="build-main-${BASE_SHA_SHORT}"
@@ -79,7 +86,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     git checkout -b "$MAIN_BRANCH"
   fi
 
-  # mainのアーティファクトをコピー
+  # mainのアーティファクトをコピー（フォーマット済み）
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${BASE_DIR}/." .
 
@@ -88,10 +95,6 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
-
-  # フォーマット実行（git add の前）
-  echo "Formatting base artifacts before commit..."
-  ../scripts/format-build-dir.sh .
 
   git add -A
   if git diff --staged --quiet; then
@@ -113,7 +116,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
   fi
 
-  # PRのアーティファクトをコピー
+  # PRのアーティファクトをコピー（フォーマット済み）
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${PR_DIR}/." .
 
@@ -122,10 +125,6 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
-
-  # フォーマット実行（git add の前）
-  echo "Formatting PR artifacts before commit..."
-  ../scripts/format-build-dir.sh .
 
   git add -A
   if git diff --staged --quiet; then
