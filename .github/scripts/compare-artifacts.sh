@@ -87,7 +87,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   fi
 
   # mainのアーティファクトをコピー（フォーマット済み）
-  rm -rf ./* .next 2>/dev/null || true
+  # .gitディレクトリ以外を全て削除
+  find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
   cp -r "../${BASE_DIR}/." .
 
   # .gitignoreを追加
@@ -117,7 +118,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   fi
 
   # PRのアーティファクトをコピー（フォーマット済み）
-  rm -rf ./* .next 2>/dev/null || true
+  # .gitディレクトリ以外を全て削除
+  find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
   cp -r "../${PR_DIR}/." .
 
   # .gitignoreを追加
