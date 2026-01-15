@@ -12,6 +12,10 @@ if [ ! -f "$DIR/BUILD_ID" ]; then
   exit 1
 fi
 
+echo "[DEBUG] BEFORE"
+cat "$DIR/server/pages/404.html" | head -n 3
+echo "[DEBUG] BEFORE"
+
 # 全ファイルのBUILD_IDをマスキング（RSC、HTML、その他すべて）
 node scripts/mask-build-id.ts "$DIR" --build-id "$DIR/BUILD_ID"
 
@@ -19,9 +23,9 @@ node scripts/mask-build-id.ts "$DIR" --build-id "$DIR/BUILD_ID"
 echo "Running oxfmt..."
 pnpm exec oxfmt --write "$DIR"
 
-echo "DEBUG"
+echo "[DEBUG] AFTER"
 cat "$DIR/server/pages/404.html" | head -n 3
-echo "DEBUG"
+echo "[DEBUG] AFTER"
 
 echo "✨️ Formatting completed: $DIR"
 echo ""
