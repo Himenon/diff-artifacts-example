@@ -51,7 +51,7 @@ async function maskFileContentByBuildId(filePath: string, buildId: string): Prom
 async function execMaskBuildId(
   buildId: string,
   targetDir: string,
-  ignore: string[],
+  buildIdPath: string,
 ): Promise<void> {
   console.log(`BUILD_ID: ${buildId}`);
   console.log(`Scanning directory: ${targetDir}`);
@@ -61,18 +61,22 @@ async function execMaskBuildId(
     cwd: targetDir,
     absolute: true,
     nodir: true,
-    ignore: ["**/.git/**", "**/node_modules/**", ...ignore],
+    dot: true,
+    ignore: ["**/.git/**", "**/node_modules/**"],
   });
 
   console.log(`\nFound ${files.length} files to process`);
 
   // 2. Process all files in parallel, ignoring errors
   await Promise.all(
-    files.map((file) =>
-      maskFileContentByBuildId(file, buildId).catch((error) => {
+    files.map((file) => {
+      if (file.endsWith(buildIdPath)) {
+        return Promise.resolve();
+      }
+      return maskFileContentByBuildId(file, buildId).catch((error) => {
         console.error(`Error processing ${file}: ${error.message}`);
-      }),
-    ),
+      });
+    }),
   );
 
   console.log("\n✓ Completed");
@@ -123,7 +127,7 @@ async function main() {
   if (!buildId) {
     throw new Error("BUILD_ID is empty");
   }
-  await execMaskBuildId(buildId, parsed.targetDir, [parsed.buildIdPath]);
+  await execMaskBuildId(buildId, parsed.targetDir, parsed.buildIdPath);
 }
 
 export { execMaskBuildId as maskBuildId, replaceBuildId };
