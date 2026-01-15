@@ -4,6 +4,8 @@ pre-commit:
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,yaml,html,css,scss,md,json}"
       run: pnpm run format
       stage_fixed: true
+      exclude:
+        - package.json
     - name: sort package json
       glob: "package.json"
       run: pnpm exec sort-package-json {staged_files}
