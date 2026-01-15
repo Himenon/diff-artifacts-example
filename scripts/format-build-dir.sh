@@ -12,10 +12,6 @@ if [ ! -f "$DIR/BUILD_ID" ]; then
   exit 1
 fi
 
-# staticディレクトリとbuild-manifest.jsonをフォーマット（BUILD_IDをマスキング）
-echo "Running format-static-dir.ts..."
-node scripts/format-static-dir.ts "$DIR"
-
 # 全ファイルのBUILD_IDをマスキング（RSC、HTML、その他すべて）
 echo "Running mask-build-id.ts..."
 node scripts/mask-build-id.ts "$DIR" --build-id "$DIR/BUILD_ID"
