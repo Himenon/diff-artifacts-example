@@ -10,8 +10,9 @@
  *   node scripts/mask-build-id.ts .next --build-id .next/BUILD_ID
  */
 
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { glob } from "glob";
+import { relative } from "node:path";
 
 /**
  * Read BUILD_ID file
@@ -41,7 +42,7 @@ async function maskFileContentByBuildId(filePath: string, buildId: string): Prom
   }
   const modifiedContent = replaceBuildId(content, buildId);
   await writeFile(filePath, modifiedContent, "utf-8");
-  console.info(`[MODIFIED] ${filePath}`);
+  console.info(`✨️ ${relative(process.cwd(), filePath)}`);
 }
 
 /**
