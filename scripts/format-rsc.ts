@@ -165,11 +165,20 @@ function formatAndSave(inputPath: string): {
     // Parse the RSC file
     const chunks = parseRscFile(inputPath);
 
+    // Get working directory and replace it with ${workDir} in paths
+    const workDir = process.cwd();
+    const formatPath = (path: string) => {
+      if (path.startsWith(workDir)) {
+        return path.replace(workDir, "${workDir}");
+      }
+      return path;
+    };
+
     // Create output JSON
     const output: OutputData = {
       metadata: {
-        inputFile: inputPath,
-        outputFile: outputPath,
+        inputFile: formatPath(inputPath),
+        outputFile: formatPath(outputPath),
         chunkCount: chunks.length,
       },
       chunks,
