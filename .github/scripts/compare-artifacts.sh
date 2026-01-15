@@ -89,6 +89,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # mainのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
+  echo "[BASE] Working Directory: $(pwd)"
+  echo "[BASE] Remove existing files except .git"
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
   # .gitignoreを先に作成（コピー前に作成することで除外が効く）
@@ -97,6 +99,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "$pattern" >> .gitignore
   done
 
+  echo "[BASE] Copying artifacts from ../$BASE_DIR"
   cp -r "../${BASE_DIR}/." .
 
   git add -A
@@ -123,6 +126,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # PRのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
+  echo "[PR] Working Directory: $(pwd)"
+  echo "[PR] Remove existing files except .git"
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
   # .gitignoreを先に作成（コピー前に作成することで除外が効く）
@@ -131,6 +136,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "$pattern" >> .gitignore
   done
 
+  echo "[BASE] Copying artifacts from ../$PR_DIR"
   cp -r "../${PR_DIR}/." .
 
   git add -A
