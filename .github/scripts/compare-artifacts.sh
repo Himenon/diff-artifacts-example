@@ -93,14 +93,40 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   echo "[BASE] Remove existing files except .git"
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
+  echo "[BASE] Current git status before copy:"
+  git status
+
   # .gitignoreを先に作成（コピー前に作成することで除外が効く）
   > .gitignore
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
 
+  echo "[BASE] Verify directory is empty (except .git and .gitignore)"
+  NON_GIT_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  if [ "$NON_GIT_FILES" -ne 0 ]; then
+    echo "[BASE] ERROR: Directory is not empty before copy"
+    find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore'
+    exit 1
+  fi
+
   echo "[BASE] Copying artifacts from ../$BASE_DIR"
-  cp -r "../${BASE_DIR}/." .
+  if [ ! -d "../${BASE_DIR}" ]; then
+    echo "[BASE] ERROR: Source directory does not exist: ../$BASE_DIR"
+    exit 1
+  fi
+
+  cp -r "../${BASE_DIR}/." . || {
+    echo "[BASE] ERROR: Failed to copy artifacts"
+    exit 1
+  }
+
+  echo "[BASE] Verify copy completed successfully"
+  COPIED_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  echo "[BASE] Copied $COPIED_FILES top-level items"
+  if [ "$COPIED_FILES" -eq 0 ]; then
+    echo "[BASE] WARNING: No files were copied"
+  fi
 
   git add -A
   git status
@@ -136,8 +162,31 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "$pattern" >> .gitignore
   done
 
-  echo "[BASE] Copying artifacts from ../$PR_DIR"
-  cp -r "../${PR_DIR}/." .
+  echo "[PR] Verify directory is empty (except .git and .gitignore)"
+  NON_GIT_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  if [ "$NON_GIT_FILES" -ne 0 ]; then
+    echo "[PR] ERROR: Directory is not empty before copy"
+    find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore'
+    exit 1
+  fi
+
+  echo "[PR] Copying artifacts from ../$PR_DIR"
+  if [ ! -d "../${PR_DIR}" ]; then
+    echo "[PR] ERROR: Source directory does not exist: ../$PR_DIR"
+    exit 1
+  fi
+
+  cp -r "../${PR_DIR}/." . || {
+    echo "[PR] ERROR: Failed to copy artifacts"
+    exit 1
+  }
+
+  echo "[PR] Verify copy completed successfully"
+  COPIED_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  echo "[PR] Copied $COPIED_FILES top-level items"
+  if [ "$COPIED_FILES" -eq 0 ]; then
+    echo "[PR] WARNING: No files were copied"
+  fi
 
   git add -A
   if git diff --staged --quiet; then
