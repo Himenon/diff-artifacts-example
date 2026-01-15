@@ -12,6 +12,10 @@ if [ ! -f "$DIR/BUILD_ID" ]; then
   exit 1
 fi
 
+# oxfmtで整形
+echo "Running oxfmt..."
+pnpm exec oxfmt --write "$DIR"
+
 echo "[DEBUG] BEFORE"
 cat "$DIR/server/pages/404.html" | head -n 3
 echo "[DEBUG] BEFORE"
@@ -25,14 +29,6 @@ if [ $EXIT_CODE -ne 0 ]; then
   echo "Error: mask-build-id.ts failed"
   exit $EXIT_CODE
 fi
-
-echo "[DEBUG] AFTER"
-cat "$DIR/server/pages/404.html" | head -n 3
-echo "[DEBUG] AFTER"
-
-# oxfmtで整形
-echo "Running oxfmt..."
-pnpm exec oxfmt --write "$DIR"
 
 echo "[DEBUG] AFTER"
 cat "$DIR/server/pages/404.html" | head -n 3
