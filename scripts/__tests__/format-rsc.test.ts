@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync } from "fs";
 import { join } from "path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { replaceBuildId, formatAndSave } from "../format-rsc";
+import { replaceBuildId, formatAndSave } from "../format-rsc.ts";
 
 const TEST_DIR = join(__dirname, "__test-rsc-files__");
 const TEST_INPUT_FILE = join(TEST_DIR, "input.rsc");

@@ -5,14 +5,14 @@
  * Command-line interface for normalizing .rsc files by replacing buildId
  *
  * Usage:
- *   pnpm exec tsx scripts/cli.ts path/to/file.rsc
- *   pnpm exec tsx scripts/cli.ts "glob-pattern"
- *   pnpm exec tsx scripts/cli.ts --json path/to/file.rsc
+ *   pnpm exec node scripts/cli.ts path/to/file.rsc
+ *   pnpm exec node scripts/cli.ts "glob-pattern"
+ *   pnpm exec node scripts/cli.ts --json path/to/file.rsc
  */
 
 import dedent from "dedent";
 import { globSync } from "glob";
-import { formatAndSave } from "./format-rsc";
+import { formatAndSave } from "./format-rsc.ts";
 
 function processGlobPattern(pattern: string, options: { generateJson?: boolean } = {}): void {
   // Find all matching files
