@@ -26,7 +26,7 @@ function replaceBuildIdInHtml(content: string, buildId: string): string {
   // Escape special regex characters in buildId
   const escapedBuildId = buildId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(escapedBuildId, "g");
-  return content.replace(regex, "${buildId}");
+  return content.replace(regex, "${BUILD_ID}");
 }
 
 /**
