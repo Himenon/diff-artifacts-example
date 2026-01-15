@@ -107,13 +107,13 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # 2. build-pr ブランチの作成・更新
   echo "Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
 
-  # リモートのPRブランチが存在するか確認
+  # 常に最新のmainブランチから作成（古いbaseとの比較を避けるため）
+  git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
+
+  # リモートブランチが存在する場合はpull（履歴をマージ）
   if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
-    echo "Remote PR branch exists, checking out from origin"
-    git checkout -B "$PR_BRANCH" "origin/$PR_BRANCH"
-  else
-    echo "Remote PR branch does not exist, creating from $MAIN_BRANCH"
-    git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
+    echo "Remote PR branch exists, pulling changes"
+    git pull origin "$PR_BRANCH" --no-rebase --allow-unrelated-histories || true
   fi
 
   # PRのアーティファクトをコピー（フォーマット済み）
