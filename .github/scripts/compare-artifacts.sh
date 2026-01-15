@@ -114,11 +114,11 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # 常に最新のmainブランチから作成（古いbaseとの比較を避けるため）
   git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
 
-  # リモートブランチが存在する場合はpull（履歴をマージ）
-  if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
-    echo "Remote PR branch exists, pulling changes"
-    git pull origin "$PR_BRANCH" --no-rebase --allow-unrelated-histories || true
-  fi
+  # # リモートブランチが存在する場合はpull（履歴をマージ）
+  # if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
+  #   echo "Remote PR branch exists, pulling changes"
+  #   git pull origin "$PR_BRANCH" --no-rebase --allow-unrelated-histories || true
+  # fi
 
   # PRのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
@@ -134,12 +134,12 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   git add -A
   if git diff --staged --quiet; then
-    echo "No changes in PR branch artifacts"
+    git commit -m "No changes in PR branch artifacts" --allow-empty
     HAS_CHANGES=false
   else
     git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
-    git push origin "$PR_BRANCH"
+    git push origin -f "$PR_BRANCH"
     HAS_CHANGES=true
   fi
 

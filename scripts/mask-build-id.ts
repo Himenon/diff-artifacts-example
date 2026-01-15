@@ -69,7 +69,7 @@ async function execMaskBuildId(
 
   // 2. Process all files in parallel, ignoring errors
   await Promise.all(
-    files.map((file) => {
+    files.map(async (file): Promise<void> => {
       if (file.endsWith(buildIdPath)) {
         return Promise.resolve();
       }
