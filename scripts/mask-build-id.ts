@@ -86,9 +86,14 @@ function replaceBuildId(content: string, buildId: string): string {
  * Rename file or directory if BUILD_ID is in the path
  * @param path - Path to rename
  * @param buildId - The build ID to replace
+ * @param debug - Enable debug logging
  * @returns New path if renamed, null if not renamed
  */
-async function renamePath(path: string, buildId: string): Promise<string | null> {
+async function renamePath(
+  path: string,
+  buildId: string,
+  debug: boolean = false,
+): Promise<string | null> {
   const fileName = basename(path);
 
   // Check if BUILD_ID is in the filename
@@ -102,9 +107,12 @@ async function renamePath(path: string, buildId: string): Promise<string | null>
 
   try {
     await rename(path, newPath);
+    if (debug) {
+      console.log(`  [RENAMED] ${path} -> ${newPath}`);
+    }
     return newPath;
   } catch (error: any) {
-    console.error(`Error renaming ${path}: ${error.message}`);
+    console.error(`  [ERROR] Renaming ${path}: ${error.message}`);
     return null;
   }
 }
@@ -113,12 +121,20 @@ async function renamePath(path: string, buildId: string): Promise<string | null>
  * Process a single file: read, replace, write
  * @param filePath - Path to the file
  * @param buildId - The build ID to replace
+ * @param debug - Enable debug logging
  * @returns True if file was modified, false otherwise
  */
-async function processFile(filePath: string, buildId: string): Promise<boolean> {
+async function processFile(
+  filePath: string,
+  buildId: string,
+  debug: boolean = false,
+): Promise<boolean> {
   try {
     // Skip binary files
     if (isBinaryFile(filePath)) {
+      if (debug) {
+        console.log(`  [SKIP] Binary file: ${filePath}`);
+      }
       return false;
     }
 
@@ -127,6 +143,9 @@ async function processFile(filePath: string, buildId: string): Promise<boolean> 
 
     // Check if BUILD_ID exists in content
     if (!content.includes(buildId)) {
+      if (debug) {
+        console.log(`  [SKIP] No BUILD_ID found: ${filePath}`);
+      }
       return false;
     }
 
@@ -136,13 +155,20 @@ async function processFile(filePath: string, buildId: string): Promise<boolean> 
     // Write back
     await writeFile(filePath, modifiedContent, "utf-8");
 
+    if (debug) {
+      console.log(`  [MODIFIED] ${filePath}`);
+    }
+
     return true;
   } catch (error: any) {
     // If file is binary (utf-8 read fails), skip silently
     if (error.code === "EINVAL" || error.message?.includes("invalid")) {
+      if (debug) {
+        console.log(`  [SKIP] Binary read error: ${filePath}`);
+      }
       return false;
     }
-    console.error(`Error processing file ${filePath}: ${error.message}`);
+    console.error(`  [ERROR] ${filePath}: ${error.message}`);
     return false;
   }
 }
@@ -151,8 +177,13 @@ async function processFile(filePath: string, buildId: string): Promise<boolean> 
  * Mask BUILD_ID in all files within target directory
  * @param targetDir - Directory to process
  * @param buildIdPath - Path to BUILD_ID file
+ * @param debug - Enable debug logging
  */
-async function maskBuildId(targetDir: string, buildIdPath: string): Promise<void> {
+async function maskBuildId(
+  targetDir: string,
+  buildIdPath: string,
+  debug: boolean = false,
+): Promise<void> {
   console.log(`Reading BUILD_ID from: ${buildIdPath}`);
   const buildId = await readBuildId(buildIdPath);
 
@@ -202,7 +233,7 @@ async function maskBuildId(targetDir: string, buildIdPath: string): Promise<void
   const pathMapping = new Map<string, string>(); // old path -> new path
 
   for (const dir of directories) {
-    const newPath = await renamePath(dir, buildId);
+    const newPath = await renamePath(dir, buildId, debug);
     if (newPath) {
       pathMapping.set(dir, newPath);
       renamedDirCount++;
@@ -226,7 +257,7 @@ async function maskBuildId(targetDir: string, buildIdPath: string): Promise<void
   });
 
   for (const file of updatedFiles) {
-    const newPath = await renamePath(file, buildId);
+    const newPath = await renamePath(file, buildId, debug);
     if (newPath) {
       pathMapping.set(file, newPath);
       renamedFileCount++;
@@ -250,13 +281,13 @@ async function maskBuildId(targetDir: string, buildIdPath: string): Promise<void
 
   for (let i = 0; i < finalFiles.length; i += CONCURRENCY) {
     const batch = finalFiles.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(batch.map((file) => processFile(file, buildId)));
+    const results = await Promise.all(batch.map((file) => processFile(file, buildId, debug)));
 
     processedCount += batch.length;
     modifiedCount += results.filter((r) => r).length;
 
     // Progress logging
-    if (processedCount % 100 === 0 || processedCount === files.length) {
+    if (!debug && (processedCount % 100 === 0 || processedCount === files.length)) {
       console.log(
         `Progress: ${processedCount}/${finalFiles.length} files processed, ${modifiedCount} modified`,
       );
@@ -271,18 +302,23 @@ async function maskBuildId(targetDir: string, buildIdPath: string): Promise<void
 /**
  * Parse command line arguments
  */
-function parseArgs(args: string[]): { targetDir: string; buildIdPath: string } | null {
+function parseArgs(
+  args: string[],
+): { targetDir: string; buildIdPath: string; debug: boolean } | null {
   if (args.length < 3) {
     return null;
   }
 
   const targetDir = args[0];
   let buildIdPath: string | undefined;
+  let debug = false;
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--build-id" && i + 1 < args.length) {
       buildIdPath = args[i + 1];
-      break;
+      i++; // Skip next argument
+    } else if (args[i] === "--debug") {
+      debug = true;
     }
   }
 
@@ -290,7 +326,7 @@ function parseArgs(args: string[]): { targetDir: string; buildIdPath: string } |
     return null;
   }
 
-  return { targetDir, buildIdPath };
+  return { targetDir, buildIdPath, debug };
 }
 
 /**
@@ -301,17 +337,22 @@ async function main() {
   const parsed = parseArgs(args);
 
   if (!parsed) {
-    console.error(`Usage: node scripts/mask-build-id.ts <target-directory> --build-id <path-to-BUILD_ID-file>
+    console.error(`Usage: node scripts/mask-build-id.ts <target-directory> --build-id <path-to-BUILD_ID-file> [--debug]
+
+Options:
+  --build-id <path>  Path to BUILD_ID file
+  --debug            Enable debug logging (show each file processed)
 
 Examples:
   node scripts/mask-build-id.ts .next --build-id .next/BUILD_ID
+  node scripts/mask-build-id.ts .next --build-id .next/BUILD_ID --debug
   node scripts/mask-build-id.ts /path/to/build --build-id /path/to/build/BUILD_ID
 `);
     process.exit(1);
   }
 
   try {
-    await maskBuildId(parsed.targetDir, parsed.buildIdPath);
+    await maskBuildId(parsed.targetDir, parsed.buildIdPath, parsed.debug);
   } catch (error: any) {
     console.error(`\n✗ Error: ${error.message}`);
     process.exit(1);
