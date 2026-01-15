@@ -14,6 +14,7 @@ set -e
 DIFF_VIEWER_REPO="${DIFF_VIEWER_REPO:-Himenon/compare-action-diff-viewer}"
 BASE_DIR="${BASE_DIR:-.next-base}"
 PR_DIR="${PR_DIR:-.next-pr}"
+GITIGNORE_PATTERNS="${GITIGNORE_PATTERNS:-node_modules/}"
 
 echo "Starting artifact comparison..."
 echo "Base: $BASE_SHA_SHORT, PR: $PR_SHA"
@@ -70,6 +71,8 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git config user.name "github-actions[bot]"
   git config user.email "github-actions[bot]@users.noreply.github.com"
 
+  echo "Using gitignore patterns: $GITIGNORE_PATTERNS"
+
   # 1. build-main ブランチの作成・更新
   echo "Creating/updating branch: $MAIN_BRANCH"
   git fetch origin
@@ -86,6 +89,12 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # mainのアーティファクトをコピー（フォーマット済み）
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${BASE_DIR}/." .
+
+  # .gitignoreを追加
+  > .gitignore
+  for pattern in $GITIGNORE_PATTERNS; do
+    echo "$pattern" >> .gitignore
+  done
 
   git add -A
   if git diff --staged --quiet; then
@@ -110,6 +119,12 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # PRのアーティファクトをコピー（フォーマット済み）
   rm -rf ./* .next 2>/dev/null || true
   cp -r "../${PR_DIR}/." .
+
+  # .gitignoreを追加
+  > .gitignore
+  for pattern in $GITIGNORE_PATTERNS; do
+    echo "$pattern" >> .gitignore
+  done
 
   git add -A
   if git diff --staged --quiet; then

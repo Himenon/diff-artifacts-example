@@ -52,3 +52,6 @@ jobs:
     with:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}
+      gitignore_patterns: |
+        node_modules
+        cache
