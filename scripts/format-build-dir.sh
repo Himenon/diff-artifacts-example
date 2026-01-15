@@ -6,6 +6,9 @@ DIR="${1:-.next}"
 
 echo "Formatting build directory: $DIR"
 
+# staticディレクトリとbuild-manifest.jsonをフォーマット（BUILD_IDをマスキング）
+node scripts/format-static-dir.ts "$DIR"
+
 # RSCファイルをフォーマット（buildIdをマスキング）し、JSON形式も生成
 node scripts/cli.ts --json "$DIR/**/*.rsc"
 
