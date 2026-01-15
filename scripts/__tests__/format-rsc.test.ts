@@ -18,7 +18,7 @@ describe("format-rsc.ts", () => {
       const result = replaceBuildId(input);
 
       // Check that buildId has been masked
-      expect(result).toContain('"b":"${buildId}"');
+      expect(result).toContain('"b":"${BUILD_ID}"');
       expect(result).not.toContain('"b":"abc123BuildId456"');
 
       // Check that other content remains unchanged
@@ -35,7 +35,7 @@ describe("format-rsc.ts", () => {
       const result = replaceBuildId(input);
 
       // All buildIds should be masked
-      const buildIdMatches = result.match(/"b":"\$\{buildId\}"/g);
+      const buildIdMatches = result.match(/"b":"\$\{BUILD_ID\}"/g);
       expect(buildIdMatches).toHaveLength(3);
 
       // Original buildIds should not exist
@@ -108,7 +108,7 @@ describe("format-rsc.ts", () => {
       const modifiedContent = readFileSync(TEST_INPUT_FILE, "utf-8");
 
       // Check that buildId has been masked
-      expect(modifiedContent).toContain('"b":"${buildId}"');
+      expect(modifiedContent).toContain('"b":"${BUILD_ID}"');
       expect(modifiedContent).not.toContain('"b":"abc123BuildId456"');
 
       // Check that other content remains unchanged
@@ -157,7 +157,7 @@ describe("format-rsc.ts", () => {
       const modifiedContent = readFileSync(TEST_INPUT_FILE, "utf-8");
 
       // All buildIds should be masked
-      const buildIdMatches = modifiedContent.match(/"b":"\$\{buildId\}"/g);
+      const buildIdMatches = modifiedContent.match(/"b":"\$\{BUILD_ID\}"/g);
       expect(buildIdMatches).toHaveLength(3);
 
       // Original buildIds should not exist
@@ -213,7 +213,7 @@ describe("format-rsc.ts", () => {
 
       // Check that buildId has been masked
       const modifiedContent = readFileSync(filePath, "utf-8");
-      expect(modifiedContent).toContain('"b":"${buildId}"');
+      expect(modifiedContent).toContain('"b":"${BUILD_ID}"');
       expect(modifiedContent).not.toContain('"b":"_22TVA8MUrTBzKwSQIsw4"');
 
       // Verify structure is preserved
@@ -235,7 +235,7 @@ describe("format-rsc.ts", () => {
 
       // Check that buildId has been masked
       const modifiedContent = readFileSync(filePath, "utf-8");
-      expect(modifiedContent).toContain('"buildId":"${buildId}"');
+      expect(modifiedContent).toContain('"buildId":"${BUILD_ID}"');
       expect(modifiedContent).not.toContain('"buildId":"_22TVA8MUrTBzKwSQIsw4"');
 
       // Verify structure is preserved
@@ -257,7 +257,7 @@ describe("format-rsc.ts", () => {
 
       // Check that buildId has been masked
       const modifiedContent = readFileSync(filePath, "utf-8");
-      expect(modifiedContent).toContain('"buildId":"${buildId}"');
+      expect(modifiedContent).toContain('"buildId":"${BUILD_ID}"');
       expect(modifiedContent).not.toContain('"buildId":"_22TVA8MUrTBzKwSQIsw4"');
 
       // Verify structure is preserved
@@ -279,7 +279,7 @@ describe("format-rsc.ts", () => {
         expect(content).not.toContain("_22TVA8MUrTBzKwSQIsw4");
         // Should contain masked buildId
         expect(content).toMatch(
-          /["']buildId["']:\s*['"]\$\{buildId\}['"]|["']b["']:\s*['"]\$\{buildId\}['"]/,
+          /["']buildId["']:\s*['"]\$\{BUILD_ID\}['"]|["']b["']:\s*['"]\$\{BUILD_ID\}['"]/,
         );
       });
     });
@@ -323,7 +323,7 @@ describe("format-rsc.ts", () => {
       // If there are chunks with buildId fields, at least one should be masked
       if (chunksWithBuildId.length > 0) {
         const hasMaskedBuildId = chunksWithBuildId.some((chunk: any) => {
-          return chunk.value.buildId === "${buildId}" || chunk.value.b === "${buildId}";
+          return chunk.value.buildId === "${BUILD_ID}" || chunk.value.b === "${BUILD_ID}";
         });
         expect(hasMaskedBuildId).toBe(true);
       }

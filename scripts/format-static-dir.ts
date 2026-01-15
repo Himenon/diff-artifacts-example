@@ -24,7 +24,7 @@ function readBuildId(buildIdPath: string): string {
  */
 function renameStaticBuildIdDir(staticDir: string, buildId: string): boolean {
   const oldDirPath = join(staticDir, buildId);
-  const newDirPath = join(staticDir, "${build_id}");
+  const newDirPath = join(staticDir, "${BUILD_ID}");
 
   if (!existsSync(oldDirPath)) {
     console.log(`Directory not found: ${oldDirPath}`);
@@ -59,7 +59,7 @@ function replaceBuildIdInManifest(buildManifestPath: string, buildId: string): b
   // Escape special regex characters in buildId
   const escapedBuildId = buildId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(escapedBuildId, "g");
-  const modifiedContent = content.replace(regex, "${build_id}");
+  const modifiedContent = content.replace(regex, "${BUILD_ID}");
 
   writeFileSync(buildManifestPath, modifiedContent, "utf-8");
   console.log(`Updated: ${buildManifestPath}`);

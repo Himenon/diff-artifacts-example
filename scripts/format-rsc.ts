@@ -125,7 +125,7 @@ function parseRscFile(filePath: string): ChunkData[] {
         if (chunk.value && typeof chunk.value === "object" && "buildId" in chunk.value) {
           chunkData.value = {
             ...chunk.value,
-            buildId: "${buildId}",
+            buildId: "${BUILD_ID}",
           };
         } else {
           chunkData.value = chunk.value;
@@ -246,18 +246,18 @@ export function replaceBuildId(content: string): string {
               const parsed = JSON.parse(jsonPart);
               // Update buildId fields
               if ("buildId" in parsed) {
-                parsed.buildId = "${buildId}";
+                parsed.buildId = "${BUILD_ID}";
               }
               if ("b" in parsed) {
-                parsed.b = "${buildId}";
+                parsed.b = "${BUILD_ID}";
               }
               // Reconstruct the line
               lines[lineIndex] = prefix + JSON.stringify(parsed);
             } catch (error) {
               // If parsing fails, use regex replacement as fallback
               let newLine = originalLine;
-              newLine = newLine.replace(/"buildId":"[^"]*"/, '"buildId":"${buildId}"');
-              newLine = newLine.replace(/"b":"[^"]*"/, '"b":"${buildId}"');
+              newLine = newLine.replace(/"buildId":"[^"]*"/, '"buildId":"${BUILD_ID}"');
+              newLine = newLine.replace(/"b":"[^"]*"/, '"b":"${BUILD_ID}"');
               lines[lineIndex] = newLine;
             }
           }
