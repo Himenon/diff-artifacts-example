@@ -89,13 +89,14 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # mainのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-  cp -r "../${BASE_DIR}/." .
 
-  # .gitignoreを追加
+  # .gitignoreを先に作成（コピー前に作成することで除外が効く）
   > .gitignore
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
+
+  cp -r "../${BASE_DIR}/." .
 
   git add -A
   if git diff --staged --quiet; then
@@ -120,13 +121,14 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # PRのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-  cp -r "../${PR_DIR}/." .
 
-  # .gitignoreを追加
+  # .gitignoreを先に作成（コピー前に作成することで除外が効く）
   > .gitignore
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
+
+  cp -r "../${PR_DIR}/." .
 
   git add -A
   if git diff --staged --quiet; then
