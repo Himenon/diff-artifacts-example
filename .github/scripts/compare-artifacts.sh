@@ -78,14 +78,15 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   echo "[BASE] Creating/updating branch: $MAIN_BRANCH"
   git fetch origin
 
-  # リモートブランチが存在するか確認
-  if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
-    echo "[BASE] Remote branch exists, checking out from origin"
-    git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
-  else
-    echo "[BASE] Remote branch does not exist, creating new branch"
-    git checkout -b "$MAIN_BRANCH"
-  fi
+  # リモートブランチが存在するか確認せずがんがんいう
+  git checkout -b "$MAIN_BRANCH"
+  # if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
+  #   echo "[BASE] Remote branch exists, checking out from origin"
+  #   git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
+  # else
+  #   echo "[BASE] Remote branch does not exist, creating new branch"
+  #   git checkout -b "$MAIN_BRANCH"
+  # fi
 
   # mainのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
