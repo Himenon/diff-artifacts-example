@@ -103,6 +103,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   if git diff --staged --quiet; then
     echo "[INFO] No changes in main branch artifacts"
   else
+    git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
     git push origin "$MAIN_BRANCH"
   fi
@@ -136,6 +137,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "No changes in PR branch artifacts"
     HAS_CHANGES=false
   else
+    git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
     git push origin "$PR_BRANCH"
     HAS_CHANGES=true
