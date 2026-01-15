@@ -35,6 +35,13 @@ $COMMENT_MARKER
 
 EOF
 
+# アーティファクトをフォーマット（差分チェック前に実行）
+echo "Formatting base artifacts..."
+./scripts/format-build-dir.sh "$BASE_DIR"
+
+echo "Formatting PR artifacts..."
+./scripts/format-build-dir.sh "$PR_DIR"
+
 # ファイルレベルの差分を取得
 diff -rq "$BASE_DIR" "$PR_DIR" > diff_result.txt || true
 
@@ -48,18 +55,11 @@ fi
 echo "HAS_DIFF=true" >> "$GITHUB_OUTPUT"
 
 # 統計情報を収集
-ADDED=$(grep -c "Only in $PR_DIR" diff_result.txt || echo 0)
-REMOVED=$(grep -c "Only in $BASE_DIR" diff_result.txt || echo 0)
-MODIFIED=$(grep -c "Files .* differ" diff_result.txt || echo 0)
+ADDED=$(grep "Only in $PR_DIR" diff_result.txt | wc -l | tr -d ' ')
+REMOVED=$(grep "Only in $BASE_DIR" diff_result.txt | wc -l | tr -d ' ')
+MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
-
-# アーティファクトをフォーマット（コピー前に実行）
-echo "Formatting base artifacts..."
-./scripts/format-build-dir.sh "$BASE_DIR"
-
-echo "Formatting PR artifacts..."
-./scripts/format-build-dir.sh "$PR_DIR"
 
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."
