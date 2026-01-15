@@ -48,7 +48,11 @@ async function maskFileContentByBuildId(filePath: string, buildId: string): Prom
 /**
  * Mask BUILD_ID in all files
  */
-async function execMaskBuildId(buildId: string, targetDir: string): Promise<void> {
+async function execMaskBuildId(
+  buildId: string,
+  targetDir: string,
+  ignore: string[],
+): Promise<void> {
   console.log(`BUILD_ID: ${buildId}`);
   console.log(`Scanning directory: ${targetDir}`);
 
@@ -57,7 +61,7 @@ async function execMaskBuildId(buildId: string, targetDir: string): Promise<void
     cwd: targetDir,
     absolute: true,
     nodir: true,
-    ignore: ["**/.git/**", "**/node_modules/**"],
+    ignore: ["**/.git/**", "**/node_modules/**", ...ignore],
   });
 
   console.log(`\nFound ${files.length} files to process`);
@@ -119,7 +123,7 @@ async function main() {
   if (!buildId) {
     throw new Error("BUILD_ID is empty");
   }
-  await execMaskBuildId(buildId, parsed.targetDir);
+  await execMaskBuildId(buildId, parsed.targetDir, [parsed.buildIdPath]);
 }
 
 export { execMaskBuildId as maskBuildId, replaceBuildId };
