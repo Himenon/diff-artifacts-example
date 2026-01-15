@@ -100,6 +100,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   cp -r "../${BASE_DIR}/." .
 
   git add -A
+  git status
   if git diff --staged --quiet; then
     echo "[INFO] No changes in main branch artifacts"
   else
