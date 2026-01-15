@@ -19,6 +19,10 @@ echo "[DEBUG] BEFORE"
 # 全ファイルのBUILD_IDをマスキング（RSC、HTML、その他すべて）
 node scripts/mask-build-id.ts "$DIR" --build-id "$DIR/BUILD_ID"
 
+echo "[DEBUG] AFTER"
+cat "$DIR/server/pages/404.html" | head -n 3
+echo "[DEBUG] AFTER"
+
 # oxfmtで整形
 echo "Running oxfmt..."
 pnpm exec oxfmt --write "$DIR"
