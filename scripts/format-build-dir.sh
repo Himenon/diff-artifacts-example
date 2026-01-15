@@ -4,7 +4,6 @@ set -e
 # 引数でディレクトリを指定（デフォルトは.next）
 DIR="${1:-.next}"
 
-echo "============================================="
 echo "Formatting build directory: $DIR"
 
 # BUILD_IDファイルの存在確認
@@ -20,7 +19,11 @@ node scripts/mask-build-id.ts "$DIR" --build-id "$DIR/BUILD_ID"
 echo "Running oxfmt..."
 pnpm exec oxfmt --write "$DIR"
 
+echo "DEBUG"
+cat "$DIR/server/pages/404.html" | head -n 3
+echo "DEBUG"
+
 echo "✨️ Formatting completed: $DIR"
 echo ""
-echo "============================================="
+echo "---------------------------------------------------------------------------------"
 echo ""
