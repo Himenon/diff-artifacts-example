@@ -55,11 +55,11 @@ MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
 # アーティファクトをフォーマット（コピー前に実行）
-echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
-./scripts/format-build-dir.sh "$BASE_DIR"
+# echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
+# ./scripts/format-build-dir.sh "$BASE_DIR"
 
-echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
-./scripts/format-build-dir.sh "$PR_DIR"
+# echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
+# ./scripts/format-build-dir.sh "$PR_DIR"
 
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."
