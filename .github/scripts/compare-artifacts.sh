@@ -199,6 +199,21 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   # 3. Pull Requestの作成または更新
   echo "Creating or updating Pull Request..."
 
+  # Summaryの内容を構築
+  SUMMARY=""
+  if [ "$ADDED" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🟢 Added: $ADDED files"$'\n'
+  fi
+  if [ "$REMOVED" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🔴 Removed: $REMOVED files"$'\n'
+  fi
+  if [ "$MODIFIED" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🟡 Modified: $MODIFIED files"$'\n'
+  fi
+  if [ "$ADDED" -eq 0 ] && [ "$REMOVED" -eq 0 ] && [ "$MODIFIED" -eq 0 ]; then
+    SUMMARY="- ✅ No changes detected"$'\n'
+  fi
+
   # PR本文の作成
   SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
   PR_BODY="# Build Artifacts Diff
@@ -210,10 +225,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 **Source Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
 
 ## Summary
-- 🟢 Added: $ADDED files
-- 🔴 Removed: $REMOVED files
-- 🟡 Modified: $MODIFIED files
-"
+${SUMMARY}"
 
   # 既存のPRを検索
   EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --base "$MAIN_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
@@ -247,11 +259,21 @@ else
 fi
 
 # サマリーを出力
-cat >> report.md <<EOF
-#### Summary
-- 🟢 Added: $ADDED files
-- 🔴 Removed: $REMOVED files
-- 🟡 Modified: $MODIFIED files
-EOF
+echo "" >> report.md
+echo "#### Summary" >> report.md
+if [ "$ADDED" -gt 0 ]; then
+  echo "- 🟢 Added: $ADDED files" >> report.md
+fi
+if [ "$REMOVED" -gt 0 ]; then
+  echo "- 🔴 Removed: $REMOVED files" >> report.md
+fi
+if [ "$MODIFIED" -gt 0 ]; then
+  echo "- 🟡 Modified: $MODIFIED files" >> report.md
+fi
+
+# すべて0の場合のメッセージ
+if [ "$ADDED" -eq 0 ] && [ "$REMOVED" -eq 0 ] && [ "$MODIFIED" -eq 0 ]; then
+  echo "- ✅ No changes detected" >> report.md
+fi
 
 echo "Comparison complete. Report generated in report.md"
