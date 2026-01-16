@@ -135,7 +135,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "[BASE] No changes in main branch artifacts"
   else
     git status
-    git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
+    git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}" --allow-empty
     git push origin "$MAIN_BRANCH" -f
   fi
 
@@ -195,7 +195,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     HAS_CHANGES=false
   else
     git status
-    git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
+    git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}" --allow-empty
     git push origin -f "$PR_BRANCH"
     HAS_CHANGES=true
   fi
