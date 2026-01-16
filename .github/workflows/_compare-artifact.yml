@@ -73,7 +73,7 @@ jobs:
       - name: Download Main Artifact
         id: download_main
         if: steps.main_run.outputs.run_id != ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           name: build-main-${{ steps.base_info.outputs.sha_short }}
