@@ -9,11 +9,25 @@ on:
       base_ref:
         required: true
         type: string
+      diff_viewer_repo:
+        required: true
+        type: string
+        description: "Repository to push diff artifacts (e.g., 'owner/repo-diff-viewer')"
       gitignore_patterns:
         required: false
         type: string
         default: "node_modules/"
         description: "Gitignore patterns to exclude from diff (space-separated)"
+      format_command:
+        required: false
+        type: string
+        default: ""
+        description: "Command to format artifacts before diffing (e.g., 'pnpm exec oxfmt')"
+      enable_comment:
+        required: false
+        type: boolean
+        default: true
+        description: "Enable posting comment to PR with diff summary"
     secrets:
       app_id:
         required: true
@@ -99,14 +113,16 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
+          DIFF_VIEWER_REPO: ${{ inputs.diff_viewer_repo }}
           BASE_DIR: .next-base
           PR_DIR: .next-pr
           GITIGNORE_PATTERNS: ${{ inputs.gitignore_patterns }}
+          FORMAT_COMMAND: ${{ inputs.format_command }}
         run: ./.github/scripts/compare-artifacts.sh
 
       # 7. コメント投稿（上書き）
       - name: Post Comment
+        if: inputs.enable_comment == true
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

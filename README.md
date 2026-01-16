@@ -59,10 +59,18 @@ APP_PRIVATE_KEY: <GitHub App Private Key>
 .github/
   workflows/
     _compare-artifact.yml       # 再利用可能なワークフロー（コア）
-    on-close.yml               # 自動クローズ用
+    on-close.yml               # 自動クローズ用（要カスタマイズ）
   scripts/
     compare-artifacts.sh       # 差分比較スクリプト
 ```
+
+**重要**: `on-close.yml`をコピーした後、以下の箇所を編集してください：
+
+- `owner`: GitHub organizationまたはユーザー名
+- `repositories`: Diff Viewerリポジトリ名（リポジトリ名のみ、owner不要）
+- `DIFF_VIEWER_REPO`: 完全なリポジトリ名（例: `your-org/your-project-diff-viewer`）
+
+詳細は`on-close.yml`内のTODOコメントを参照してください。
 
 ## 基本的な使い方
 
