@@ -1,0 +1,16 @@
+name: "Auto Assignment"
+description: "Pull Requestの自動アサインを行います。"
+
+inputs:
+  github-token:
+    description: "GitHub Appによって生成されたGitHub Tokenです。"
+    default: ${{ github.token }}
+    required: false
+  base-url:
+    description: An optional GitHub REST API URL to connect to a different GitHub instance. For example, https://my.github-enterprise-server.com/api/v3
+    default: https://github.com/api/v3
+    required: false
+
+runs:
+  using: "node20"
+  main: dist/index.js
