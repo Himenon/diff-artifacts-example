@@ -119,9 +119,13 @@ jobs:
         run: |
           BODY=$(cat report.md)
 
-          # DIFF_URLが設定されていれば、コメントに追記
+          # DIFF_URLプレースホルダーを実際のURLに置換
           if [ -n "$DIFF_URL" ]; then
-            BODY="${BODY}"$'\n\n'"---"$'\n\n'"🔗 **View full diff**: $DIFF_URL"
+            DIFF_LINK="🔗 **[View full diff]($DIFF_URL)**"
+            BODY="${BODY//\{\{DIFF_URL\}\}/$DIFF_LINK}"
+          else
+            # DIFF_URLがない場合はプレースホルダーを削除
+            BODY="${BODY//\{\{DIFF_URL\}\}/}"
           fi
 
           # マーカーをコメントの最後に追加

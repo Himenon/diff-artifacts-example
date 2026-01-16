@@ -29,6 +29,8 @@ cat > report.md <<EOF
 $COMMENT_MARKER
 ### 🛠 Build Artifacts Diff
 
+{{DIFF_URL}}
+
 **Base**: [\`main@${BASE_SHA_SHORT}\`](${BASE_COMMIT_URL})
 **Head**: [\`PR@${PR_SHA}\`](${HEAD_COMMIT_URL})
 **Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
@@ -255,12 +257,6 @@ cat >> report.md <<EOF
 - 🟢 Added: $ADDED files
 - 🔴 Removed: $REMOVED files
 - 🟡 Modified: $MODIFIED files
-
 EOF
-
-if [ -n "$DIFF_URL" ]; then
-  echo "" >> report.md
-  echo "📊 **[View Full Diff]($DIFF_URL)**" >> report.md
-fi
 
 echo "Comparison complete. Report generated in report.md"
