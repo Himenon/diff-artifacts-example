@@ -27,8 +27,10 @@ jobs:
           cache: "pnpm"
       - run: pnpm i --frozen-lockfile
       - run: |
-          pnpm test
           pnpm build
+          pnpm test
+        env:
+          CI_BUILD_ID: FIXED_CI_BUILD_ID
       - name: Set short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT

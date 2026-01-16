@@ -55,11 +55,11 @@ MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
 echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
 # アーティファクトをフォーマット（コピー前に実行）
-echo "Formatting base artifacts..."
-./scripts/format-build-dir.sh "$BASE_DIR"
+# echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
+# ./scripts/format-build-dir.sh "$BASE_DIR"
 
-echo "Formatting PR artifacts..."
-./scripts/format-build-dir.sh "$PR_DIR"
+# echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
+# ./scripts/format-build-dir.sh "$PR_DIR"
 
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."
@@ -71,70 +71,132 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git config user.name "github-actions[bot]"
   git config user.email "github-actions[bot]@users.noreply.github.com"
 
-  echo "Using gitignore patterns: $GITIGNORE_PATTERNS"
+  echo "Using gitignore patterns:"
+  echo "$GITIGNORE_PATTERNS"
 
   # 1. build-main ブランチの作成・更新
-  echo "Creating/updating branch: $MAIN_BRANCH"
+  echo "[BASE] Creating/updating branch: $MAIN_BRANCH"
   git fetch origin
 
-  # リモートブランチが存在するか確認
-  if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
-    echo "Remote branch exists, checking out from origin"
-    git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
-  else
-    echo "Remote branch does not exist, creating new branch"
-    git checkout -b "$MAIN_BRANCH"
-  fi
+  # リモートブランチが存在するか確認せずがんがんいう
+  git checkout -b "$MAIN_BRANCH"
+  # if git rev-parse "origin/$MAIN_BRANCH" >/dev/null 2>&1; then
+  #   echo "[BASE] Remote branch exists, checking out from origin"
+  #   git checkout -B "$MAIN_BRANCH" "origin/$MAIN_BRANCH"
+  # else
+  #   echo "[BASE] Remote branch does not exist, creating new branch"
+  #   git checkout -b "$MAIN_BRANCH"
+  # fi
 
   # mainのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
+  echo "[BASE] Working Directory: $(pwd)"
+  echo "[BASE] Remove existing files except .git"
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-  cp -r "../${BASE_DIR}/." .
 
-  # .gitignoreを追加
+  echo "[BASE] Current git status before copy:"
+  git status
+
+  # .gitignoreを先に作成（コピー前に作成することで除外が効く）
   > .gitignore
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
 
+  echo "[BASE] Verify directory is empty (except .git and .gitignore)"
+  NON_GIT_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  if [ "$NON_GIT_FILES" -ne 0 ]; then
+    echo "[BASE] ERROR: Directory is not empty before copy"
+    find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore'
+    exit 1
+  fi
+
+  echo "[BASE] Copying artifacts from ../$BASE_DIR"
+  if [ ! -d "../${BASE_DIR}" ]; then
+    echo "[BASE] ERROR: Source directory does not exist: ../$BASE_DIR"
+    exit 1
+  fi
+
+  cp -r "../${BASE_DIR}/." . || {
+    echo "[BASE] ERROR: Failed to copy artifacts"
+    exit 1
+  }
+
+  echo "[BASE] Verify copy completed successfully"
+  COPIED_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  echo "[BASE] Copied $COPIED_FILES top-level items"
+  if [ "$COPIED_FILES" -eq 0 ]; then
+    echo "[BASE] WARNING: No files were copied"
+  fi
+
   git add -A
+  git status
   if git diff --staged --quiet; then
-    echo "No changes in main branch artifacts"
+    echo "[BASE] No changes in main branch artifacts"
   else
+    git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
-    git push origin "$MAIN_BRANCH"
+    git push origin "$MAIN_BRANCH" -f
   fi
 
   # 2. build-pr ブランチの作成・更新
-  echo "Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
+  echo "[PR] Creating/updating branch: $PR_BRANCH from $MAIN_BRANCH"
 
   # 常に最新のmainブランチから作成（古いbaseとの比較を避けるため）
   git checkout -B "$PR_BRANCH" "$MAIN_BRANCH"
 
-  # リモートブランチが存在する場合はpull（履歴をマージ）
-  if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
-    echo "Remote PR branch exists, pulling changes"
-    git pull origin "$PR_BRANCH" --no-rebase --allow-unrelated-histories || true
-  fi
+  # # リモートブランチが存在する場合はpull（履歴をマージ）
+  # if git rev-parse "origin/$PR_BRANCH" >/dev/null 2>&1; then
+  #   echo "Remote PR branch exists, pulling changes"
+  #   git pull origin "$PR_BRANCH" --no-rebase --allow-unrelated-histories || true
+  # fi
 
   # PRのアーティファクトをコピー（フォーマット済み）
   # .gitディレクトリ以外を全て削除
+  echo "[PR] Working Directory: $(pwd)"
+  echo "[PR] Remove existing files except .git"
   find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-  cp -r "../${PR_DIR}/." .
 
-  # .gitignoreを追加
+  # .gitignoreを先に作成（コピー前に作成することで除外が効く）
   > .gitignore
   for pattern in $GITIGNORE_PATTERNS; do
     echo "$pattern" >> .gitignore
   done
 
+  echo "[PR] Verify directory is empty (except .git and .gitignore)"
+  NON_GIT_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  if [ "$NON_GIT_FILES" -ne 0 ]; then
+    echo "[PR] ERROR: Directory is not empty before copy"
+    find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore'
+    exit 1
+  fi
+
+  echo "[PR] Copying artifacts from ../$PR_DIR"
+  if [ ! -d "../${PR_DIR}" ]; then
+    echo "[PR] ERROR: Source directory does not exist: ../$PR_DIR"
+    exit 1
+  fi
+
+  cp -r "../${PR_DIR}/." . || {
+    echo "[PR] ERROR: Failed to copy artifacts"
+    exit 1
+  }
+
+  echo "[PR] Verify copy completed successfully"
+  COPIED_FILES=$(find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' | wc -l)
+  echo "[PR] Copied $COPIED_FILES top-level items"
+  if [ "$COPIED_FILES" -eq 0 ]; then
+    echo "[PR] WARNING: No files were copied"
+  fi
+
   git add -A
   if git diff --staged --quiet; then
-    echo "No changes in PR branch artifacts"
+    git commit -m "No changes in PR branch artifacts" --allow-empty
     HAS_CHANGES=false
   else
+    git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
-    git push origin "$PR_BRANCH"
+    git push origin -f "$PR_BRANCH"
     HAS_CHANGES=true
   fi
 

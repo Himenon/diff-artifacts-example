@@ -105,6 +105,8 @@ jobs:
           GITIGNORE_PATTERNS: ${{ inputs.gitignore_patterns }}
         run: ./.github/scripts/compare-artifacts.sh
 
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
       # 7. コメント投稿（上書き）
       - name: Post Comment
         if: steps.compare.outputs.HAS_DIFF == 'true'
