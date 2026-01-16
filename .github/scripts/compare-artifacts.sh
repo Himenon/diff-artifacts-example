@@ -29,30 +29,18 @@ cat > report.md <<EOF
 $COMMENT_MARKER
 ### 🛠 Build Artifacts Diff
 
+{{DIFF_URL}}
+
 **Base**: [\`main@${BASE_SHA_SHORT}\`](${BASE_COMMIT_URL})
 **Head**: [\`PR@${PR_SHA}\`](${HEAD_COMMIT_URL})
 **Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
 
 EOF
 
-# ファイルレベルの差分を取得（フォーマット前の生データで）
-diff -rq "$BASE_DIR" "$PR_DIR" > diff_result.txt || true
-
-if [ ! -s diff_result.txt ]; then
-  echo "HAS_DIFF=false" >> "$GITHUB_OUTPUT"
-  echo "✅ No changes detected." >> report.md
-  echo "No changes detected."
-  exit 0
-fi
-
-echo "HAS_DIFF=true" >> "$GITHUB_OUTPUT"
-
-# 統計情報を収集
-ADDED=$(grep "Only in $PR_DIR" diff_result.txt | wc -l | tr -d ' ')
-REMOVED=$(grep "Only in $BASE_DIR" diff_result.txt | wc -l | tr -d ' ')
-MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
-
-echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
+# 統計情報は後でGit差分から計算するため、ここでは初期化のみ
+ADDED=0
+REMOVED=0
+MODIFIED=0
 
 # アーティファクトをフォーマット（コピー前に実行）
 # echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
@@ -135,7 +123,7 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
     echo "[BASE] No changes in main branch artifacts"
   else
     git status
-    git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}"
+    git commit -m "build: ${GITHUB_REPOSITORY}#${BASE_SHA_SHORT}" --allow-empty
     git push origin "$MAIN_BRANCH" -f
   fi
 
@@ -192,23 +180,48 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git add -A
   if git diff --staged --quiet; then
     git commit -m "No changes in PR branch artifacts" --allow-empty
-    HAS_CHANGES=false
   else
-    git status
-    git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}"
-    git push origin -f "$PR_BRANCH"
-    HAS_CHANGES=true
+    git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}" --allow-empty
   fi
+
+  # Git差分から正確な統計を取得
+  echo "Calculating Git diff statistics between $MAIN_BRANCH and $PR_BRANCH..."
+  ADDED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^A" | wc -l | tr -d ' \n')
+  MODIFIED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^M" | wc -l | tr -d ' \n')
+  REMOVED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^D" | wc -l | tr -d ' \n')
+
+  # デフォルト値を設定（空の場合）
+  ADDED=${ADDED:-0}
+  MODIFIED=${MODIFIED:-0}
+  REMOVED=${REMOVED:-0}
+
+  echo "Git Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
+
+  git push origin -f "$PR_BRANCH"
 
   cd ..
 
   # 3. Pull Requestの作成または更新
-  if [ "$HAS_CHANGES" = "true" ]; then
-    echo "Creating or updating Pull Request..."
+  echo "Creating or updating Pull Request..."
 
-    # PR本文の作成
-    SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
-    PR_BODY="# Build Artifacts Diff
+  # Summaryの内容を構築
+  SUMMARY=""
+  if [ "${ADDED:-0}" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🟢 Added: $ADDED files"$'\n'
+  fi
+  if [ "${REMOVED:-0}" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🔴 Removed: $REMOVED files"$'\n'
+  fi
+  if [ "${MODIFIED:-0}" -gt 0 ]; then
+    SUMMARY="${SUMMARY}- 🟡 Modified: $MODIFIED files"$'\n'
+  fi
+  if [ "${ADDED:-0}" -eq 0 ] && [ "${REMOVED:-0}" -eq 0 ] && [ "${MODIFIED:-0}" -eq 0 ]; then
+    SUMMARY="- ✅ No changes detected"$'\n'
+  fi
+
+  # PR本文の作成
+  SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
+  PR_BODY="# Build Artifacts Diff
 
 **Repository**: [${GITHUB_REPOSITORY}](https://github.com/${GITHUB_REPOSITORY})
 **PR**: [#${PR_NUMBER}](${SOURCE_PR_URL})
@@ -217,38 +230,30 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 **Source Compare**: [${BASE_SHA_SHORT}...${PR_SHA}](${COMPARE_URL})
 
 ## Summary
-- 🟢 Added: $ADDED files
-- 🔴 Removed: $REMOVED files
-- 🟡 Modified: $MODIFIED files
-"
+${SUMMARY}"
 
-    # 既存のPRを検索
-    EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --base "$MAIN_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+  # 既存のPRを検索
+  EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --base "$MAIN_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
-    if [ -n "$EXISTING_PR" ]; then
-      echo "Updating existing PR #$EXISTING_PR"
-      gh pr edit "$EXISTING_PR" --repo "$DIFF_VIEWER_REPO" --body "$PR_BODY"
-      DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/pull/${EXISTING_PR}"
-    else
-      echo "Creating new Pull Request"
-      PR_TITLE="Build diff for ${GITHUB_REPOSITORY}#${PR_NUMBER}"
-      CREATED_PR=$(gh pr create --repo "$DIFF_VIEWER_REPO" --base "$MAIN_BRANCH" --head "$PR_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" 2>&1)
-
-      if echo "$CREATED_PR" | grep -q "https://github.com"; then
-        DIFF_URL=$(echo "$CREATED_PR" | grep -o 'https://github.com[^ ]*')
-      else
-        echo "Warning: Could not extract PR URL from: $CREATED_PR"
-        DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
-      fi
-    fi
-
-    echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
-    echo "Diff PR URL: $DIFF_URL"
+  if [ -n "$EXISTING_PR" ]; then
+    echo "Updating existing PR #$EXISTING_PR"
+    gh pr edit "$EXISTING_PR" --repo "$DIFF_VIEWER_REPO" --body "$PR_BODY"
+    DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/pull/${EXISTING_PR}"
   else
-    echo "No changes detected, skipping PR creation"
-    DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
-    echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
+    echo "Creating new Pull Request"
+    PR_TITLE="Build diff for ${GITHUB_REPOSITORY}#${PR_NUMBER}"
+    CREATED_PR=$(gh pr create --repo "$DIFF_VIEWER_REPO" --base "$MAIN_BRANCH" --head "$PR_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" 2>&1)
+
+    if echo "$CREATED_PR" | grep -q "https://github.com"; then
+      DIFF_URL=$(echo "$CREATED_PR" | grep -o 'https://github.com[^ ]*')
+    else
+      echo "Warning: Could not extract PR URL from: $CREATED_PR"
+      DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
+    fi
   fi
+
+  echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
+  echo "Diff PR URL: $DIFF_URL"
 else
   echo "Error: Could not clone diff-viewer repository."
   echo "This may happen if:"
@@ -259,17 +264,21 @@ else
 fi
 
 # サマリーを出力
-cat >> report.md <<EOF
-#### Summary
-- 🟢 Added: $ADDED files
-- 🔴 Removed: $REMOVED files
-- 🟡 Modified: $MODIFIED files
+echo "" >> report.md
+echo "#### Summary" >> report.md
+if [ "${ADDED:-0}" -gt 0 ]; then
+  echo "- 🟢 Added: $ADDED files" >> report.md
+fi
+if [ "${REMOVED:-0}" -gt 0 ]; then
+  echo "- 🔴 Removed: $REMOVED files" >> report.md
+fi
+if [ "${MODIFIED:-0}" -gt 0 ]; then
+  echo "- 🟡 Modified: $MODIFIED files" >> report.md
+fi
 
-EOF
-
-if [ -n "$DIFF_URL" ]; then
-  echo "" >> report.md
-  echo "📊 **[View Full Diff]($DIFF_URL)**" >> report.md
+# すべて0の場合のメッセージ
+if [ "${ADDED:-0}" -eq 0 ] && [ "${REMOVED:-0}" -eq 0 ] && [ "${MODIFIED:-0}" -eq 0 ]; then
+  echo "- ✅ No changes detected" >> report.md
 fi
 
 echo "Comparison complete. Report generated in report.md"
