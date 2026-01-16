@@ -1,5 +1,5 @@
-name: "Auto Assignment"
-description: "Pull Requestの自動アサインを行います。"
+name: "Compare Artifact Action"
+description: "Pull Request単位でArtifactの差分を比較します。"
 
 inputs:
   github-token:
