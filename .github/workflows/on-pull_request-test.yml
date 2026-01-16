@@ -17,7 +17,7 @@ jobs:
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: |
-            ${{ github.workspace }}/.next/cache
+            ${{ github.workspace }}/apps/nextjs16-project/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.md') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
@@ -25,7 +25,9 @@ jobs:
         with:
           node-version-file: package.json
           cache: "pnpm"
-      - run: pnpm i --frozen-lockfile
+      - run: |
+          cd apps/nextjs16-project
+          pnpm i --frozen-lockfile
       - run: |
           pnpm build
           pnpm test
@@ -38,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: build-pr-${{ steps.vars.outputs.sha_short }}
-          path: .next
+          path: apps/nextjs16-project/.next
           if-no-files-found: error
           include-hidden-files: true
   call-diff:
