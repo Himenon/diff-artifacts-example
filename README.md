@@ -22,6 +22,30 @@ GitHub ActionsでPRのビルド成果物の差分を視覚的に確認できる�
 - ✅ 元PRクローズ時の自動クリーンアップ
 - ✅ 再利用可能なワークフロー設計
 
+## 入力パラメータ一覧（Composite Action用）
+
+| パラメータ | 必須 | デフォルト | 説明 |
+|-----------|------|-----------|------|
+| `github-token` | No | `${{ github.token }}` | GitHub token for API access |
+| `app-id` | Yes | - | GitHub App ID |
+| `app-private-key` | Yes | - | GitHub App Private Key |
+| `pr-sha` | Yes | - | PRのコミットSHA（短縮形推奨） |
+| `base-ref` | Yes | - | ベースブランチ名（例: `main`） |
+| `diff-viewer-repo` | Yes | - | 差分表示用リポジトリ（例: `owner/repo`） |
+| `diff-viewer-owner` | Yes | - | 差分表示用リポジトリのオーナー |
+| `diff-viewer-repo-name` | Yes | - | 差分表示用リポジトリ名（オーナーなし） |
+| `base-artifact-name` | Yes | - | ベースのアーティファクト名 |
+| `pr-artifact-name` | Yes | - | PRのアーティファクト名 |
+| `base-artifact-path` | No | `.next-base` | ベースアーティファクトのダウンロード先 |
+| `pr-artifact-path` | No | `.next-pr` | PRアーティファクトのダウンロード先 |
+| `gitignore-patterns` | No | `node_modules/` | 除外パターン（改行区切り） |
+| `format-command` | No | `""` | フォーマットコマンド（例: `pnpm exec oxfmt`） |
+| `enable-comment` | No | `true` | PRコメント投稿を有効化 |
+| `base-workflow-name` | No | `on-push-main.yml` | ベースブランチのワークフロー名 |
+| `node-version-file` | No | `package.json` | Node.jsバージョンファイル |
+| `pnpm-version` | No | `latest` | PNPMバージョン |
+| `install-dependencies` | No | `false` | 依存関係をインストールするか |
+
 ## セットアップ
 
 ### 1. Diff Viewerリポジトリの準備
@@ -72,9 +96,90 @@ APP_PRIVATE_KEY: <GitHub App Private Key>
 
 詳細は`on-close.yml`内のTODOコメントを参照してください。
 
-## 基本的な使い方
+## 使い方
 
-### ステップ1: ビルドジョブの作成
+このアクションは2つの方法で使用できます：
+
+1. **Composite Action**: 別のリポジトリから直接呼び出す（推奨）
+2. **Reusable Workflow**: 同じリポジトリ内で再利用可能なワークフローとして呼び出す
+
+### 方法1: Composite Actionとして使用（別リポジトリから呼び出す）
+
+他のリポジトリから直接このアクションを呼び出すことができます。
+
+```yaml
+name: Build and Compare
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ビルドステップ
+      - name: Setup and Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # PRのアーティファクトをアップロード
+      - name: Upload PR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-pr-${{ steps.vars.outputs.sha_short }}
+          path: dist
+
+  compare:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 必須: ベースブランチとの比較に必要
+
+      # ベースブランチのSHAを取得
+      - name: Get base SHA
+        id: base-sha
+        run: |
+          git fetch origin main
+          SHA=$(git rev-parse origin/main)
+          echo "short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Compare Artifacts
+        uses: your-org/compare-action@v1  # このリポジトリを指定
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          app-id: ${{ secrets.DIFF_VIEWER_APP_ID }}
+          app-private-key: ${{ secrets.DIFF_VIEWER_APP_PRIVATE_KEY }}
+          pr-sha: ${{ needs.build.outputs.sha_short }}
+          base-ref: main
+          diff-viewer-repo: your-org/your-project-diff-viewer
+          diff-viewer-owner: your-org
+          diff-viewer-repo-name: your-project-diff-viewer
+          base-artifact-name: build-main-${{ steps.base-sha.outputs.short }}
+          pr-artifact-name: build-pr-${{ needs.build.outputs.sha_short }}
+          base-artifact-path: dist
+          pr-artifact-path: dist
+          format-command: "npx prettier --write"
+          gitignore-patterns: "node_modules/ .cache/"
+          enable-comment: "true"
+          install-dependencies: "false"  # フォーマットコマンドに依存関係が必要な場合はtrue
+```
+
+### 方法2: Reusable Workflowとして使用（同じリポジトリ内）
+
+#### ステップ1: ビルドジョブの作成
 
 PRのビルド成果物をアーティファクトとしてアップロードします。
 

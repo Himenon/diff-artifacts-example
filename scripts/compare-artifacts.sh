@@ -43,11 +43,15 @@ REMOVED=0
 MODIFIED=0
 
 # アーティファクトをフォーマット（コピー前に実行）
-echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
-pnpm exec oxfmt  "$BASE_DIR"
+if [ -n "$FORMAT_COMMAND" ]; then
+  echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
+  eval "$FORMAT_COMMAND \"$BASE_DIR\""
 
-echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
-pnpm exec oxfmt "$PR_DIR"
+  echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
+  eval "$FORMAT_COMMAND \"$PR_DIR\""
+else
+  echo "No format command specified, skipping formatting"
+fi
 
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."

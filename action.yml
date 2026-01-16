@@ -3,14 +3,212 @@ description: "Pull Request単位でArtifactの差分を比較します。"
 
 inputs:
   github-token:
-    description: "GitHub Appによって生成されたGitHub Tokenです。"
+    description: "GitHub token for API access"
+    required: false
     default: ${{ github.token }}
+  app-id:
+    description: "GitHub App ID for generating token"
+    required: true
+  app-private-key:
+    description: "GitHub App Private Key for generating token"
+    required: true
+  pr-sha:
+    description: "Pull Request commit SHA"
+    required: true
+  base-ref:
+    description: "Base branch reference (e.g., 'main')"
+    required: true
+  diff-viewer-repo:
+    description: "Repository to push diff artifacts (e.g., 'owner/repo-diff-viewer')"
+    required: true
+  diff-viewer-owner:
+    description: "Owner of the diff viewer repository"
+    required: true
+  diff-viewer-repo-name:
+    description: "Name of the diff viewer repository (without owner)"
+    required: true
+  gitignore-patterns:
+    description: "Gitignore patterns to exclude from diff (space-separated)"
     required: false
-  base-url:
-    description: An optional GitHub REST API URL to connect to a different GitHub instance. For example, https://my.github-enterprise-server.com/api/v3
-    default: https://github.com/api/v3
+    default: "node_modules/"
+  format-command:
+    description: "Command to format artifacts before diffing (e.g., 'pnpm exec oxfmt')"
     required: false
+    default: ""
+  enable-comment:
+    description: "Enable posting comment to PR with diff summary"
+    required: false
+    default: "true"
+  base-artifact-name:
+    description: "Name of the base artifact to download"
+    required: true
+  pr-artifact-name:
+    description: "Name of the PR artifact to download"
+    required: true
+  base-artifact-path:
+    description: "Path to download base artifact"
+    required: false
+    default: ".next-base"
+  pr-artifact-path:
+    description: "Path to download PR artifact"
+    required: false
+    default: ".next-pr"
+  base-workflow-name:
+    description: "Workflow name to find base artifact"
+    required: false
+    default: "on-push-main.yml"
+  node-version-file:
+    description: "Path to node version file (e.g., 'package.json')"
+    required: false
+    default: "package.json"
+  pnpm-version:
+    description: "PNPM version to use"
+    required: false
+    default: "latest"
+  install-dependencies:
+    description: "Whether to install dependencies with pnpm install"
+    required: false
+    default: "false"
+
+outputs:
+  diff-url:
+    description: "URL to the diff viewer Pull Request"
+    value: ${{ steps.compare.outputs.DIFF_URL }}
 
 runs:
-  using: "node20"
-  main: dist/index.js
+  using: "composite"
+  steps:
+    - name: Setup Git Config
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+        git config --global user.email "actions@github.com"
+        git config --global user.name "gh-actions"
+      shell: bash
+
+    - name: Setup PNPM
+      uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: "pnpm"
+
+    - name: Install dependencies
+      if: inputs.install-dependencies == 'true'
+      run: pnpm i --frozen-lockfile
+      shell: bash
+
+    - name: Generate GitHub App Token
+      id: generate-token
+      uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+        owner: ${{ inputs.diff-viewer-owner }}
+        repositories: ${{ inputs.diff-viewer-repo-name }}
+
+    - name: Get base branch SHA
+      id: base_info
+      run: |
+        git fetch origin ${{ inputs.base-ref }}
+        SHA=$(git rev-parse origin/${{ inputs.base-ref }})
+        echo "sha_short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Get main branch workflow run ID
+      id: main_run
+      continue-on-error: true
+      run: |
+        RUN_ID=$(gh run list --branch ${{ inputs.base-ref }} --workflow ${{ inputs.base-workflow-name }} --limit 1 --json databaseId --jq '.[0].databaseId')
+        echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+
+    - name: Download Main Artifact
+      id: download_main
+      if: steps.main_run.outputs.run_id != ''
+      uses: actions/download-artifact@v7
+      continue-on-error: true
+      with:
+        name: ${{ inputs.base-artifact-name }}
+        path: ${{ inputs.base-artifact-path }}
+        run-id: ${{ steps.main_run.outputs.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Download PR Artifact
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.pr-artifact-name }}
+        path: ${{ inputs.pr-artifact-path }}
+
+    - name: Compare Artifacts
+      id: compare
+      if: steps.download_main.outcome == 'success'
+      run: ${{ github.action_path }}/scripts/compare-artifacts.sh
+      shell: bash
+      env:
+        COMMENT_MARKER: "<!-- build-artifacts-diff -->"
+        BASE_SHA_SHORT: ${{ steps.base_info.outputs.sha_short }}
+        PR_SHA: ${{ inputs.pr-sha }}
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        DIFF_VIEWER_REPO: ${{ inputs.diff-viewer-repo }}
+        BASE_DIR: ${{ inputs.base-artifact-path }}
+        PR_DIR: ${{ inputs.pr-artifact-path }}
+        GITIGNORE_PATTERNS: ${{ inputs.gitignore-patterns }}
+        FORMAT_COMMAND: ${{ inputs.format-command }}
+
+    - name: Post Comment
+      if: inputs.enable-comment == 'true'
+      run: |
+        BODY=$(cat report.md)
+
+        # DIFF_URLプレースホルダーを実際のURLに置換
+        if [ -n "$DIFF_URL" ]; then
+          DIFF_LINK="🔗 **View full diff: $DIFF_URL**"
+          BODY="${BODY//\{\{DIFF_URL\}\}/$DIFF_LINK}"
+        else
+          # DIFF_URLがない場合はプレースホルダーを削除
+          BODY="${BODY//\{\{DIFF_URL\}\}/}"
+        fi
+
+        # マーカーをコメントの最後に追加
+        BODY="${BODY}"$'\n'"${COMMENT_MARKER}"
+
+        # 既存のコメントを検索（マーカーで識別）
+        COMMENT_ID=$(gh api repos/$GH_REPO/issues/$NUMBER/comments \
+          --jq ".[] | select(.body | contains(\"$COMMENT_MARKER\")) | .id" \
+          2>/dev/null | head -n 1)
+
+        if [ -n "$COMMENT_ID" ]; then
+          # 既存のコメントを更新
+          if gh api repos/$GH_REPO/issues/comments/$COMMENT_ID -X PATCH -f body="$BODY" > /dev/null 2>&1; then
+            echo "既存のコメント #$COMMENT_ID を更新しました"
+            echo "Diff URL: $DIFF_URL"
+          else
+            echo "エラー: コメントの更新に失敗しました (Comment ID: $COMMENT_ID)"
+            exit 1
+          fi
+        else
+          # 新規コメントを作成
+          if gh pr comment "$NUMBER" --body "$BODY" > /dev/null 2>&1; then
+            echo "新規コメントを作成しました"
+            echo "Diff URL: $DIFF_URL"
+          else
+            echo "エラー: コメントの作成に失敗しました (PR: $NUMBER)"
+            exit 1
+          fi
+        fi
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        NUMBER: ${{ github.event.pull_request.number }}
+        DIFF_URL: ${{ steps.compare.outputs.DIFF_URL }}
+        COMMENT_MARKER: "<!-- build-artifacts-diff -->"
