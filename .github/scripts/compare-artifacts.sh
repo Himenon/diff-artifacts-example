@@ -186,9 +186,14 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # Git差分から正確な統計を取得
   echo "Calculating Git diff statistics between $MAIN_BRANCH and $PR_BRANCH..."
-  ADDED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^A" || echo "0")
-  MODIFIED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^M" || echo "0")
-  REMOVED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^D" || echo "0")
+  ADDED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^A" | wc -l | tr -d ' \n')
+  MODIFIED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^M" | wc -l | tr -d ' \n')
+  REMOVED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep "^D" | wc -l | tr -d ' \n')
+
+  # デフォルト値を設定（空の場合）
+  ADDED=${ADDED:-0}
+  MODIFIED=${MODIFIED:-0}
+  REMOVED=${REMOVED:-0}
 
   echo "Git Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
 
@@ -201,16 +206,16 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 
   # Summaryの内容を構築
   SUMMARY=""
-  if [ "$ADDED" -gt 0 ]; then
+  if [ "${ADDED:-0}" -gt 0 ]; then
     SUMMARY="${SUMMARY}- 🟢 Added: $ADDED files"$'\n'
   fi
-  if [ "$REMOVED" -gt 0 ]; then
+  if [ "${REMOVED:-0}" -gt 0 ]; then
     SUMMARY="${SUMMARY}- 🔴 Removed: $REMOVED files"$'\n'
   fi
-  if [ "$MODIFIED" -gt 0 ]; then
+  if [ "${MODIFIED:-0}" -gt 0 ]; then
     SUMMARY="${SUMMARY}- 🟡 Modified: $MODIFIED files"$'\n'
   fi
-  if [ "$ADDED" -eq 0 ] && [ "$REMOVED" -eq 0 ] && [ "$MODIFIED" -eq 0 ]; then
+  if [ "${ADDED:-0}" -eq 0 ] && [ "${REMOVED:-0}" -eq 0 ] && [ "${MODIFIED:-0}" -eq 0 ]; then
     SUMMARY="- ✅ No changes detected"$'\n'
   fi
 
@@ -261,18 +266,18 @@ fi
 # サマリーを出力
 echo "" >> report.md
 echo "#### Summary" >> report.md
-if [ "$ADDED" -gt 0 ]; then
+if [ "${ADDED:-0}" -gt 0 ]; then
   echo "- 🟢 Added: $ADDED files" >> report.md
 fi
-if [ "$REMOVED" -gt 0 ]; then
+if [ "${REMOVED:-0}" -gt 0 ]; then
   echo "- 🔴 Removed: $REMOVED files" >> report.md
 fi
-if [ "$MODIFIED" -gt 0 ]; then
+if [ "${MODIFIED:-0}" -gt 0 ]; then
   echo "- 🟡 Modified: $MODIFIED files" >> report.md
 fi
 
 # すべて0の場合のメッセージ
-if [ "$ADDED" -eq 0 ] && [ "$REMOVED" -eq 0 ] && [ "$MODIFIED" -eq 0 ]; then
+if [ "${ADDED:-0}" -eq 0 ] && [ "${REMOVED:-0}" -eq 0 ] && [ "${MODIFIED:-0}" -eq 0 ]; then
   echo "- ✅ No changes detected" >> report.md
 fi
 
