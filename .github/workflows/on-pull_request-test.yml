@@ -35,7 +35,7 @@ jobs:
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: "Upload build directory: build-pr-${{ steps.vars.outputs.sha_short }}"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-pr-${{ steps.vars.outputs.sha_short }}
           path: .next
