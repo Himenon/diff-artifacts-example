@@ -37,24 +37,10 @@ $COMMENT_MARKER
 
 EOF
 
-# ファイルレベルの差分を取得（フォーマット前の生データで）
-diff -rq "$BASE_DIR" "$PR_DIR" > diff_result.txt || true
-
-if [ ! -s diff_result.txt ]; then
-  echo "HAS_DIFF=false" >> "$GITHUB_OUTPUT"
-  echo "✅ No changes detected." >> report.md
-  echo "No changes detected."
-  exit 0
-fi
-
-echo "HAS_DIFF=true" >> "$GITHUB_OUTPUT"
-
-# 統計情報を収集
-ADDED=$(grep "Only in $PR_DIR" diff_result.txt | wc -l | tr -d ' ')
-REMOVED=$(grep "Only in $BASE_DIR" diff_result.txt | wc -l | tr -d ' ')
-MODIFIED=$(grep "Files .* differ" diff_result.txt | wc -l | tr -d ' ')
-
-echo "Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
+# 統計情報は後でGit差分から計算するため、ここでは初期化のみ
+ADDED=0
+REMOVED=0
+MODIFIED=0
 
 # アーティファクトをフォーマット（コピー前に実行）
 # echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
@@ -197,6 +183,15 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   else
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}" --allow-empty
   fi
+
+  # Git差分から正確な統計を取得
+  echo "Calculating Git diff statistics between $MAIN_BRANCH and $PR_BRANCH..."
+  ADDED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^A" || echo "0")
+  MODIFIED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^M" || echo "0")
+  REMOVED=$(git diff --name-status "$MAIN_BRANCH" "$PR_BRANCH" | grep -c "^D" || echo "0")
+
+  echo "Git Statistics: Added=$ADDED, Removed=$REMOVED, Modified=$MODIFIED"
+
   git push origin -f "$PR_BRANCH"
 
   cd ..
