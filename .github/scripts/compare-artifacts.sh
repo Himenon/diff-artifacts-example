@@ -192,23 +192,19 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
   git add -A
   if git diff --staged --quiet; then
     git commit -m "No changes in PR branch artifacts" --allow-empty
-    HAS_CHANGES=false
   else
-    git status
     git commit -m "build: ${GITHUB_REPOSITORY}#${PR_SHA}" --allow-empty
-    git push origin -f "$PR_BRANCH"
-    HAS_CHANGES=true
   fi
+  git push origin -f "$PR_BRANCH"
 
   cd ..
 
   # 3. Pull Requestの作成または更新
-  if [ "$HAS_CHANGES" = "true" ]; then
-    echo "Creating or updating Pull Request..."
+  echo "Creating or updating Pull Request..."
 
-    # PR本文の作成
-    SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
-    PR_BODY="# Build Artifacts Diff
+  # PR本文の作成
+  SOURCE_PR_URL="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
+  PR_BODY="# Build Artifacts Diff
 
 **Repository**: [${GITHUB_REPOSITORY}](https://github.com/${GITHUB_REPOSITORY})
 **PR**: [#${PR_NUMBER}](${SOURCE_PR_URL})
@@ -222,33 +218,28 @@ if git clone "https://x-access-token:${GH_TOKEN}@github.com/${DIFF_VIEWER_REPO}.
 - 🟡 Modified: $MODIFIED files
 "
 
-    # 既存のPRを検索
-    EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --base "$MAIN_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+  # 既存のPRを検索
+  EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --base "$MAIN_BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
-    if [ -n "$EXISTING_PR" ]; then
-      echo "Updating existing PR #$EXISTING_PR"
-      gh pr edit "$EXISTING_PR" --repo "$DIFF_VIEWER_REPO" --body "$PR_BODY"
-      DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/pull/${EXISTING_PR}"
-    else
-      echo "Creating new Pull Request"
-      PR_TITLE="Build diff for ${GITHUB_REPOSITORY}#${PR_NUMBER}"
-      CREATED_PR=$(gh pr create --repo "$DIFF_VIEWER_REPO" --base "$MAIN_BRANCH" --head "$PR_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" 2>&1)
-
-      if echo "$CREATED_PR" | grep -q "https://github.com"; then
-        DIFF_URL=$(echo "$CREATED_PR" | grep -o 'https://github.com[^ ]*')
-      else
-        echo "Warning: Could not extract PR URL from: $CREATED_PR"
-        DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
-      fi
-    fi
-
-    echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
-    echo "Diff PR URL: $DIFF_URL"
+  if [ -n "$EXISTING_PR" ]; then
+    echo "Updating existing PR #$EXISTING_PR"
+    gh pr edit "$EXISTING_PR" --repo "$DIFF_VIEWER_REPO" --body "$PR_BODY"
+    DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/pull/${EXISTING_PR}"
   else
-    echo "No changes detected, skipping PR creation"
-    DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
-    echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
+    echo "Creating new Pull Request"
+    PR_TITLE="Build diff for ${GITHUB_REPOSITORY}#${PR_NUMBER}"
+    CREATED_PR=$(gh pr create --repo "$DIFF_VIEWER_REPO" --base "$MAIN_BRANCH" --head "$PR_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" 2>&1)
+
+    if echo "$CREATED_PR" | grep -q "https://github.com"; then
+      DIFF_URL=$(echo "$CREATED_PR" | grep -o 'https://github.com[^ ]*')
+    else
+      echo "Warning: Could not extract PR URL from: $CREATED_PR"
+      DIFF_URL="https://github.com/${DIFF_VIEWER_REPO}/compare/${MAIN_BRANCH}...${PR_BRANCH}"
+    fi
   fi
+
+  echo "DIFF_URL=$DIFF_URL" >> "$GITHUB_OUTPUT"
+  echo "Diff PR URL: $DIFF_URL"
 else
   echo "Error: Could not clone diff-viewer repository."
   echo "This may happen if:"
