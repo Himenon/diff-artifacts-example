@@ -43,11 +43,11 @@ REMOVED=0
 MODIFIED=0
 
 # アーティファクトをフォーマット（コピー前に実行）
-# echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
-# ./scripts/format-build-dir.sh "$BASE_DIR"
+echo "--------- [$BASE_DIR] Formatting base artifacts... ---------"
+pnpm exec oxfmt  "$BASE_DIR"
 
-# echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
-# ./scripts/format-build-dir.sh "$PR_DIR"
+echo "--------- [$PR_DIR] Formatting PR artifacts... ---------"
+pnpm exec oxfmt "$PR_DIR"
 
 # diff-viewerリポジトリにプッシュ
 echo "Pushing artifacts to $DIFF_VIEWER_REPO..."
