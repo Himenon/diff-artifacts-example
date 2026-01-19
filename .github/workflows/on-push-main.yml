@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/reponame
 
 jobs:
   build:
@@ -30,13 +31,7 @@ jobs:
       - run: pnpm build
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
-      - name: Set short SHA
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      - name: Upload build directory
-        uses: actions/upload-artifact@v6
+      - uses: Himenon/upload-diff-artifact@9934d4914492e79d3b09ca14c054e96c47517609
         with:
-          name: build-main-${{ steps.vars.outputs.sha_short }}
+          name: build-main
           path: apps/nextjs16-project/.next
-          if-no-files-found: error
-          include-hidden-files: true
