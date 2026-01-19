@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: Himenon/close-diff-artifact-pr@15c2746381ebcdd8204bf336fe32413fa910edc7
+      - uses: Himenon/close-diff-artifact-pr@d1da43608873d5a426e34ed79dfc275c25498dbc
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
           diff-viewer-owner: Himenon
           diff-viewer-repo-name: compare-action-diff-viewer
+          pr-branch-prefix: build-pr
