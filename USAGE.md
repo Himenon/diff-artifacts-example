@@ -90,57 +90,57 @@ jobs:
 ### 例2: フォーマットコマンドを使用する場合
 
 ```yaml
-  compare:
-    if: github.event_name == 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
-      actions: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+compare:
+  if: github.event_name == 'pull_request'
+  needs: build
+  runs-on: ubuntu-latest
+  permissions:
+    pull-requests: write
+    contents: read
+    actions: read
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Get base SHA
-        id: base-sha
-        run: |
-          git fetch origin ${{ github.base_ref }}
-          SHA=$(git rev-parse origin/${{ github.base_ref }})
-          echo "short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+    - name: Get base SHA
+      id: base-sha
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        SHA=$(git rev-parse origin/${{ github.base_ref }})
+        echo "short=$(echo $SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # フォーマットコマンドに必要な依存関係をセットアップ
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+    # フォーマットコマンドに必要な依存関係をセットアップ
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: pnpm
 
-      - name: Compare Artifacts
-        uses: your-org/compare-action@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          app-id: ${{ secrets.DIFF_VIEWER_APP_ID }}
-          app-private-key: ${{ secrets.DIFF_VIEWER_APP_PRIVATE_KEY }}
-          pr-sha: ${{ needs.build.outputs.sha_short }}
-          base-ref: ${{ github.base_ref }}
-          diff-viewer-repo: your-org/your-project-diff-viewer
-          diff-viewer-owner: your-org
-          diff-viewer-repo-name: your-project-diff-viewer
-          base-artifact-name: build-main-${{ steps.base-sha.outputs.short }}
-          pr-artifact-name: build-pr-${{ needs.build.outputs.sha_short }}
-          base-artifact-path: .next
-          pr-artifact-path: .next
-          format-command: "pnpm exec oxfmt"  # カスタムフォーマットツール
-          install-dependencies: "true"  # pnpm installを実行
-          gitignore-patterns: |
-            node_modules
-            cache
-            trace
+    - name: Compare Artifacts
+      uses: your-org/compare-action@main
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        app-id: ${{ secrets.DIFF_VIEWER_APP_ID }}
+        app-private-key: ${{ secrets.DIFF_VIEWER_APP_PRIVATE_KEY }}
+        pr-sha: ${{ needs.build.outputs.sha_short }}
+        base-ref: ${{ github.base_ref }}
+        diff-viewer-repo: your-org/your-project-diff-viewer
+        diff-viewer-owner: your-org
+        diff-viewer-repo-name: your-project-diff-viewer
+        base-artifact-name: build-main-${{ steps.base-sha.outputs.short }}
+        pr-artifact-name: build-pr-${{ needs.build.outputs.sha_short }}
+        base-artifact-path: .next
+        pr-artifact-path: .next
+        format-command: "pnpm exec oxfmt" # カスタムフォーマットツール
+        install-dependencies: "true" # pnpm installを実行
+        gitignore-patterns: |
+          node_modules
+          cache
+          trace
 ```
 
 ### 例3: 複数のディレクトリを比較する場合
@@ -272,6 +272,7 @@ jobs:
 **原因**: ベースブランチのアーティファクトが見つからない
 
 **解決方法**:
+
 1. mainブランチで最近ビルドが実行されたか確認
 2. アーティファクト名が正しいか確認
 3. `base-workflow-name`パラメータを確認
@@ -289,6 +290,7 @@ jobs:
 **原因**: GitHub Appの権限が不足している
 
 **解決方法**:
+
 1. GitHub Appの設定を確認
 2. 必要な権限: `contents: write`, `pull_requests: write`
 3. GitHub AppがDiff Viewerリポジトリにインストールされているか確認
@@ -298,6 +300,7 @@ jobs:
 **原因**: コマンドが見つからないか、依存関係が不足
 
 **解決方法**:
+
 1. `install-dependencies: "true"`を設定
 2. または、compareジョブで事前に依存関係をインストール:
 
@@ -313,7 +316,7 @@ steps:
     uses: your-org/compare-action@main
     with:
       format-command: "pnpm exec oxfmt"
-      install-dependencies: "false"  # 既にインストール済み
+      install-dependencies: "false" # 既にインストール済み
       # ... その他のパラメータ
 ```
 
@@ -322,6 +325,7 @@ steps:
 **原因**: 不要なファイルが含まれている
 
 **解決方法**:
+
 1. `gitignore-patterns`を追加:
 
 ```yaml
@@ -352,7 +356,7 @@ with:
   with:
     name: build-pr-${{ steps.vars.outputs.sha_short }}
     path: .next
-    retention-days: 7  # 7日間保持
+    retention-days: 7 # 7日間保持
 ```
 
 ### 3. 大きなアーティファクトの扱い
