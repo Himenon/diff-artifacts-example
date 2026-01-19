@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build --webpack",
+    "build": "next build --turbopack",
     "dev": "next dev",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
