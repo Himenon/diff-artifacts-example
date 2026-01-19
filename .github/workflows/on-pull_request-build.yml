@@ -39,6 +39,7 @@ jobs:
         with:
           name: build-pr
           path: |
+            apps/nextjs14-project/.next  
             apps/nextjs15-project/.next
             apps/nextjs16-project/.next
 

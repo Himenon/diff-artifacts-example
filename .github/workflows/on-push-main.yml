@@ -34,5 +34,6 @@ jobs:
         with:
           name: build-main
           path: |
+            apps/nextjs14-project/.next
             apps/nextjs15-project/.next
             apps/nextjs16-project/.next
