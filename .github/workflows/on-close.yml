@@ -20,14 +20,16 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: Himenon
-          repositories: compare-action-diff-viewer
+          # TODO: Update these values for your project
+          owner: YOUR_GITHUB_ORG_OR_USER # e.g., "your-org"
+          repositories: YOUR_DIFF_VIEWER_REPO_NAME # e.g., "your-project-diff-viewer" (repository name only, not owner/repo)
 
       # DIFF_VIEWER_REPOのPRをクローズ
       - name: Close PR in DIFF_VIEWER_REPO
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          DIFF_VIEWER_REPO: Himenon/compare-action-diff-viewer
+          # TODO: Update this value for your project
+          DIFF_VIEWER_REPO: YOUR_GITHUB_ORG_OR_USER/YOUR_DIFF_VIEWER_REPO_NAME # e.g., "your-org/your-project-diff-viewer"
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           PR_BRANCH="build-pr-${PR_NUMBER}"
