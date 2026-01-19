@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha-short: ${{ steps.nextjs.outputs.sha-short }}
+      sha-short: ${{ steps.vars.outputs.sha-short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -36,7 +36,7 @@ jobs:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
 
       - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
-        id: nextjs
+        id: vars
         with:
           name: build-pr
           path: |
@@ -64,7 +64,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm i --frozen-lockfile
 
-      - name: Diff Artifacts for Next.js
+      - name: Diff Artifacts
         uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
         with:
           github-token: ${{ github.token }}
@@ -77,8 +77,8 @@ jobs:
           base-artifact-name: "build-main"
           pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short }}"
           base-branch-prefix: build-main
-          base-artifact-path: ".diff-artifacts/nextjs/base"
-          pr-artifact-path: ".diff-artifacts/nextjs/pr"
+          base-artifact-path: ".diff-artifacts/base"
+          pr-artifact-path: ".diff-artifacts/pr"
           pr-branch-prefix: build-pr
           base-workflow-name: "on-push-main.yml"
           gitignore-patterns: |
