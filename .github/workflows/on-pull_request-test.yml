@@ -33,7 +33,8 @@ jobs:
           pnpm test
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
-      - uses: Himenon/upload-diff-artifact@9934d4914492e79d3b09ca14c054e96c47517609
+      - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
+        id: vars
         with:
           name: build-pr
           path: apps/nextjs16-project/.next
