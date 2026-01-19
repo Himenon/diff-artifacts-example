@@ -40,13 +40,9 @@ jobs:
         id: nextjs-15
         with:
           name: build-pr-nextjs-15
-          path: apps/nextjs15-project/.next
-
-      - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
-        id: nextjs-16
-        with:
-          name: build-pr-nextjs-16
-          path: apps/nextjs16-project/.next
+          path: |
+            apps/nextjs15-project/.next
+            apps/nextjs16-project/.next
 
   diff-artifacts:
     needs: build
@@ -85,31 +81,6 @@ jobs:
           base-artifact-path: ".diff-artifacts/nextjs-15/base"
           pr-artifact-path: ".diff-artifacts/nextjs-15/pr"
           pr-branch-prefix: build-pr-nextjs-15
-          base-workflow-name: "on-push-main.yml"
-          gitignore-patterns: |
-            node_modules
-            cache
-            trace
-            trace-build
-          pre-push-shell: "pnpm exec oxfmt"
-          enable-comment: "true"
-
-      - name: Diff Artifacts for Next.js 16
-        uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
-        with:
-          github-token: ${{ github.token }}
-          app-id: ${{ secrets.APP_ID }}
-          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          pr-sha: ${{ needs.build.outputs.sha-short-nextjs-16 }}
-          base-ref: ${{ github.base_ref }}
-          diff-viewer-owner: "Himenon"
-          diff-viewer-repo-name: "compare-action-diff-viewer"
-          base-artifact-name: "build-main"
-          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short-nextjs-16 }}"
-          base-branch-prefix: build-main
-          base-artifact-path: ".diff-artifacts/nextjs-15/base"
-          pr-artifact-path: ".diff-artifacts/nextjs-15/pr"
-          pr-branch-prefix: build-pr-nextjs-16
           base-workflow-name: "on-push-main.yml"
           gitignore-patterns: |
             node_modules
