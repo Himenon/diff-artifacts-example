@@ -43,31 +43,36 @@ jobs:
           path: apps/nextjs16-project/.next
           if-no-files-found: error
           include-hidden-files: true
+
   call-diff:
     needs: build
-    uses: Himenon/compare-artifact@71964253239bb65197f39aafd6886066acf7fcd5
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: write
       contents: read
       actions: read
-    secrets:
-      app_id: ${{ secrets.APP_ID }}
-      app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
-    with:
-      pr_sha: ${{ needs.build.outputs.sha_short }}
-      base_ref: ${{ github.base_ref }}
-      diff_viewer_repo: "Himenon/compare-action-diff-viewer"
-      diff_viewer_owner: "Himenon"
-      diff_viewer_repo_name: "compare-action-diff-viewer"
-      base_workflow_file: "on-push-main.yml"
-      base_dir: ".next-base"
-      pr_dir: ".next-pr"
-      base_artifact_prefix: "build-main"
-      pr_artifact_prefix: "build-pr"
-      gitignore_patterns: |
-        node_modules
-        cache
-        trace
-        trace-build
-      format_command: "pnpm exec oxfmt"
-      enable_comment: true
+    steps:
+      - name: Compare Artifacts
+        uses: Himenon/compare-artifact@71964253239bb65197f39aafd6886066acf7fcd5
+        with:
+          github-token: ${{ github.token }}
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          pr-sha: ${{ needs.build.outputs.sha_short }}
+          base-ref: ${{ github.base_ref }}
+          diff-viewer-repo: "Himenon/compare-action-diff-viewer"
+          diff-viewer-owner: "Himenon"
+          diff-viewer-repo-name: "compare-action-diff-viewer"
+          base-artifact-name: "build-main-${{ needs.build.outputs.sha_short }}"
+          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha_short }}"
+          base-artifact-path: ".next-base"
+          pr-artifact-path: ".next-pr"
+          base-workflow-name: "on-push-main.yml"
+          gitignore-patterns: |
+            node_modules
+            cache
+            trace
+            trace-build
+          format-command: "pnpm exec oxfmt"
+          enable-comment: "true"
