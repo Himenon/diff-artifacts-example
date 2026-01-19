@@ -11,43 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      # GitHub App Tokenを生成
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      - uses: Himenon/close-diff-artifact-pr@15c2746381ebcdd8204bf336fe32413fa910edc7
         with:
           app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          # TODO: Update these values for your project
-          owner: YOUR_GITHUB_ORG_OR_USER # e.g., "your-org"
-          repositories: YOUR_DIFF_VIEWER_REPO_NAME # e.g., "your-project-diff-viewer" (repository name only, not owner/repo)
-
-      # DIFF_VIEWER_REPOのPRをクローズ
-      - name: Close PR in DIFF_VIEWER_REPO
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          # TODO: Update this value for your project
-          DIFF_VIEWER_REPO: YOUR_GITHUB_ORG_OR_USER/YOUR_DIFF_VIEWER_REPO_NAME # e.g., "your-org/your-project-diff-viewer"
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          PR_BRANCH="build-pr-${PR_NUMBER}"
-
-          echo "Searching for PR with head branch: $PR_BRANCH"
-
-          # 該当ブランチからのPRを検索（状態問わず）
-          EXISTING_PR=$(gh pr list --repo "$DIFF_VIEWER_REPO" --head "$PR_BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
-
-          if [ -n "$EXISTING_PR" ]; then
-            echo "Found open PR #$EXISTING_PR in $DIFF_VIEWER_REPO"
-            echo "Closing PR #$EXISTING_PR..."
-
-            # PRをクローズ
-            gh pr close "$EXISTING_PR" --repo "$DIFF_VIEWER_REPO" --comment "Automatically closing because the source PR ${GITHUB_REPOSITORY}#${PR_NUMBER} was closed."
-
-            echo "✅ Successfully closed PR #$EXISTING_PR"
-          else
-            echo "No open PR found for branch $PR_BRANCH in $DIFF_VIEWER_REPO"
-            echo "This is expected if no diff PR was created or it was already closed."
-          fi
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          diff-viewer-owner: Himenon
+          diff-viewer-repo-name: compare-action-diff-viewer
