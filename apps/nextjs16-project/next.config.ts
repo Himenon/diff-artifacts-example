@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   experimental: {
     cssChunking: false,
     optimizeCss: false,
+    turbopackClientSideNestedAsyncChunking: false,
+    turbopackServerSideNestedAsyncChunking: false,
   },
   turbopack: {
     debugIds: true
