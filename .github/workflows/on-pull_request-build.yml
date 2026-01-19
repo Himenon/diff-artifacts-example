@@ -17,6 +17,7 @@ jobs:
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: |
+            ${{ github.workspace }}/apps/nextjs14-project/.next/cache
             ${{ github.workspace }}/apps/nextjs15-project/.next/cache
             ${{ github.workspace }}/apps/nextjs16-project/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.md') }}
