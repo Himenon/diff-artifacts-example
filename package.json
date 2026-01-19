@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm run -r build"
   },
   "keywords": [],
   "author": "",
@@ -19,5 +19,6 @@
       "version": "^24.13.0",
       "onFail": "download"
     }
-  }
+  },
+  "devDependencies": {}
 }
