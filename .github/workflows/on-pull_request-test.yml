@@ -66,7 +66,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Compare Artifacts
-        uses: Himenon/compare-artifact@d794eede8982de7b3e21c100e0950a556ef4bcab
+        uses: Himenon/compare-artifact@5dce929971bff04ad82b730666860fdc5609dfc4
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
@@ -77,8 +77,10 @@ jobs:
           diff-viewer-repo-name: "compare-action-diff-viewer"
           base-artifact-name: "build-main"
           pr-artifact-name: "build-pr-${{ needs.build.outputs.sha_short }}"
+          base-branch-prefix: build-main
           base-artifact-path: ".next-base"
           pr-artifact-path: ".next-pr"
+          pr-branch-prefix: build-pr
           base-workflow-name: "on-push-main.yml"
           gitignore-patterns: |
             node_modules
