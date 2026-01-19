@@ -48,6 +48,19 @@ on:
         type: string
         default: "build-pr"
         description: "Artifact name prefix for PR branch (e.g., 'build-pr')"
+      diff_viewer_owner:
+        required: true
+        type: string
+        description: "Owner of the diff viewer repository"
+      diff_viewer_repo_name:
+        required: true
+        type: string
+        description: "Name of the diff viewer repository"
+      base_workflow_file:
+        required: false
+        type: string
+        default: "main.yml"
+        description: "Workflow file name to find base branch artifacts"
     secrets:
       app_id:
         required: true
@@ -68,13 +81,6 @@ jobs:
         with:
           # 全履歴を取得するか、少なくともベースブランチと比較できる程度の履歴が必要
           fetch-depth: 0
-      - uses: ./.github/actions/initialize
-      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
-      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-        with:
-          node-version-file: package.json
-          cache: "pnpm"
-      - run: pnpm i --frozen-lockfile
 
       # 1. Generate GitHub App Token
       - name: Generate GitHub App Token
@@ -83,8 +89,8 @@ jobs:
         with:
           app-id: ${{ secrets.app_id }}
           private-key: ${{ secrets.app_private_key }}
-          owner: Himenon
-          repositories: compare-action-diff-viewer
+          owner: ${{ inputs.diff_viewer_owner }}
+          repositories: ${{ inputs.diff_viewer_repo_name }}
 
       # 2. Mainブランチの最新コミットハッシュ取得
       - name: Get base branch SHA
@@ -98,7 +104,7 @@ jobs:
         id: main_run
         continue-on-error: true
         run: |
-          RUN_ID=$(gh run list --branch ${{ inputs.base_ref }} --workflow on-push-main.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          RUN_ID=$(gh run list --branch ${{ inputs.base_ref }} --workflow ${{ inputs.base_workflow_file }} --limit 1 --json databaseId --jq '.[0].databaseId')
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
