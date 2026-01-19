@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
 
       - name: Compare Artifacts
-        uses: Himenon/compare-artifact@7478624cc63328599759efc7946b126d64e7569d
+        uses: Himenon/compare-artifact@ccfaf6955f8257b330142697e37d23e4635c9fe3
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
