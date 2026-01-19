@@ -66,7 +66,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Compare Artifacts
-        uses: Himenon/compare-artifact@5dce929971bff04ad82b730666860fdc5609dfc4
+        uses: Himenon/compare-artifact@2dab3515f60fe4fd5afff84c40f32bb4ba66a30c
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
