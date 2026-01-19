@@ -2,17 +2,24 @@
   "name": "compare-action",
   "version": "1.0.0",
   "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
   "main": "index.js",
   "scripts": {
     "build": "pnpm run -r build",
-    "test": "pnpm run -r test",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "postinstall": "lefthook install"
+    "postinstall": "lefthook install",
+    "test": "pnpm run -r test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "devDependencies": {
+    "lefthook": "^2.0.15",
+    "npm-run-all": "^4.1.5",
+    "oxfmt": "^0.24.0",
+    "oxlint": "^1.39.0",
+    "sort-package-json": "^3.6.0"
+  },
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": "^24.13.0"
@@ -23,12 +30,5 @@
       "version": "^24.13.0",
       "onFail": "download"
     }
-  },
-  "devDependencies": {
-    "lefthook": "^2.0.15",
-    "npm-run-all": "^4.1.5",
-    "oxfmt": "^0.24.0",
-    "oxlint": "^1.39.0",
-    "sort-package-json": "^3.6.0"
   }
 }
