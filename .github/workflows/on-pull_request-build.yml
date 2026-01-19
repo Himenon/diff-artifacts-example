@@ -2,13 +2,15 @@ name: Build and Compare Artifacts on Pull Request
 
 on:
   pull_request:
+  workflow_call:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha-short: ${{ steps.vars.outputs.sha-short }}
+      sha-short-nextjs-15: ${{ steps.nextjs-15.outputs.sha-short }}
+      sha-short-nextjs-16: ${{ steps.nextjs-16.outputs.sha-short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -17,6 +19,7 @@ jobs:
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: |
+            ${{ github.workspace }}/apps/nextjs15-project/.next/cache
             ${{ github.workspace }}/apps/nextjs16-project/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.md') }}
           restore-keys: |
@@ -26,17 +29,23 @@ jobs:
           node-version-file: package.json
           cache: "pnpm"
       - run: |
-          cd apps/nextjs16-project
           pnpm i --frozen-lockfile
       - run: |
           pnpm build
           pnpm test
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
+
       - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
-        id: vars
+        id: nextjs-15
         with:
-          name: build-pr
+          name: build-pr-nextjs-15
+          path: apps/nextjs15-project/.next
+
+      - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
+        id: nextjs-16
+        with:
+          name: build-pr-nextjs-16
           path: apps/nextjs16-project/.next
 
   diff-artifacts:
@@ -60,22 +69,47 @@ jobs:
           cache: "pnpm"
       - run: pnpm i --frozen-lockfile
 
-      - name: Diff Artifacts
+      - name: Diff Artifacts for Next.js 15
         uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          pr-sha: ${{ needs.build.outputs.sha-short }}
+          pr-sha: ${{ needs.build.outputs.sha-short-nextjs-15 }}
           base-ref: ${{ github.base_ref }}
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
           base-artifact-name: "build-main"
-          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short }}"
+          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short-nextjs-15 }}"
           base-branch-prefix: build-main
-          base-artifact-path: ".next-base"
-          pr-artifact-path: ".next-pr"
-          pr-branch-prefix: build-pr
+          base-artifact-path: ".diff-artifacts/nextjs-15/base"
+          pr-artifact-path: ".diff-artifacts/nextjs-15/pr"
+          pr-branch-prefix: build-pr-nextjs-15
+          base-workflow-name: "on-push-main.yml"
+          gitignore-patterns: |
+            node_modules
+            cache
+            trace
+            trace-build
+          pre-push-shell: "pnpm exec oxfmt"
+          enable-comment: "true"
+
+      - name: Diff Artifacts for Next.js 16
+        uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
+        with:
+          github-token: ${{ github.token }}
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          pr-sha: ${{ needs.build.outputs.sha-short-nextjs-16 }}
+          base-ref: ${{ github.base_ref }}
+          diff-viewer-owner: "Himenon"
+          diff-viewer-repo-name: "compare-action-diff-viewer"
+          base-artifact-name: "build-main"
+          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short-nextjs-16 }}"
+          base-branch-prefix: build-main
+          base-artifact-path: ".diff-artifacts/nextjs-15/base"
+          pr-artifact-path: ".diff-artifacts/nextjs-15/pr"
+          pr-branch-prefix: build-pr-nextjs-16
           base-workflow-name: "on-push-main.yml"
           gitignore-patterns: |
             node_modules
