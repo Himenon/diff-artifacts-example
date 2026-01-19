@@ -44,7 +44,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
 
-  check-artifact-diff:
+  diff-artifacts:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -65,8 +65,8 @@ jobs:
           cache: "pnpm"
       - run: pnpm i --frozen-lockfile
 
-      - name: Compare Artifacts
-        uses: Himenon/compare-artifact@2dab3515f60fe4fd5afff84c40f32bb4ba66a30c
+      - name: Diff Artifacts
+        uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
