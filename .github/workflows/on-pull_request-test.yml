@@ -70,7 +70,7 @@ jobs:
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
           base-artifact-name: "build-main"
-          pr-artifact-name: "build-pr"
+          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha_short }}"
           base-artifact-path: ".next-base"
           pr-artifact-path: ".next-pr"
           base-workflow-name: "on-push-main.yml"
