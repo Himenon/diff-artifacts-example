@@ -118,7 +118,7 @@ jobs:
           PR_DIR: .next-pr
           GITIGNORE_PATTERNS: ${{ inputs.gitignore_patterns }}
           FORMAT_COMMAND: ${{ inputs.format_command }}
-        run: ./.github/scripts/compare-artifacts.sh
+        run: ./scripts/compare-artifacts.sh
 
       # 7. コメント投稿（上書き）
       - name: Post Comment
