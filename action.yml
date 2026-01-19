@@ -48,11 +48,11 @@ inputs:
   base-artifact-path:
     description: "Path to download base artifact"
     required: false
-    default: ".next-base"
+    default: ".base-artifact"
   pr-artifact-path:
     description: "Path to download PR artifact"
     required: false
-    default: ".next-pr"
+    default: ".pr-artifact"
   base-workflow-name:
     description: "Workflow name to find base artifact"
     required: false

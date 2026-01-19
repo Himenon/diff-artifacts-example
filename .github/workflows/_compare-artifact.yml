@@ -28,6 +28,26 @@ on:
         type: boolean
         default: true
         description: "Enable posting comment to PR with diff summary"
+      base_dir:
+        required: false
+        type: string
+        default: "artifact-base"
+        description: "Directory path for base branch artifact"
+      pr_dir:
+        required: false
+        type: string
+        default: "artifact-pr"
+        description: "Directory path for PR artifact"
+      base_artifact_prefix:
+        required: false
+        type: string
+        default: "build-main"
+        description: "Artifact name prefix for base branch (e.g., 'build-main')"
+      pr_artifact_prefix:
+        required: false
+        type: string
+        default: "build-pr"
+        description: "Artifact name prefix for PR branch (e.g., 'build-pr')"
     secrets:
       app_id:
         required: true
@@ -90,17 +110,17 @@ jobs:
         uses: actions/download-artifact@v7
         continue-on-error: true
         with:
-          name: build-main-${{ steps.base_info.outputs.sha_short }}
-          path: .next-base
+          name: ${{ inputs.base_artifact_prefix }}-${{ steps.base_info.outputs.sha_short }}
+          path: ${{ inputs.base_dir }}
           run-id: ${{ steps.main_run.outputs.run_id }}
           github-token: ${{ github.token }}
 
       # 5. 現在のPRのArtifactをダウンロード
-      - name: "Download PR Artifact: build-pr-${{ inputs.pr_sha }}"
+      - name: "Download PR Artifact: ${{ inputs.pr_artifact_prefix }}-${{ inputs.pr_sha }}"
         uses: actions/download-artifact@v7
         with:
-          name: build-pr-${{ inputs.pr_sha }}
-          path: .next-pr
+          name: ${{ inputs.pr_artifact_prefix }}-${{ inputs.pr_sha }}
+          path: ${{ inputs.pr_dir }}
 
       # 6. 比較
       - name: Compare Artifacts
@@ -114,8 +134,8 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           DIFF_VIEWER_REPO: ${{ inputs.diff_viewer_repo }}
-          BASE_DIR: .next-base
-          PR_DIR: .next-pr
+          BASE_DIR: ${{ inputs.base_dir }}
+          PR_DIR: ${{ inputs.pr_dir }}
           GITIGNORE_PATTERNS: ${{ inputs.gitignore_patterns }}
           FORMAT_COMMAND: ${{ inputs.format_command }}
         run: ./scripts/compare-artifacts.sh
