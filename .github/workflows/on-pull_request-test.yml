@@ -45,7 +45,7 @@ jobs:
           include-hidden-files: true
   call-diff:
     needs: build
-    uses: ./.github/workflows/_compare-artifact.yml
+    uses: Himenon/compare-artifact@71964253239bb65197f39aafd6886066acf7fcd5
     permissions:
       pull-requests: write
       contents: read
