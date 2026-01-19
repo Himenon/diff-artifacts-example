@@ -8,9 +8,24 @@ importers:
 
   .:
     devDependencies:
+      lefthook:
+        specifier: ^2.0.15
+        version: 2.0.15
       node:
         specifier: runtime:^24.13.0
         version: runtime:24.13.0
+      npm-run-all:
+        specifier: ^4.1.5
+        version: 4.1.5
+      oxfmt:
+        specifier: ^0.24.0
+        version: 0.24.0
+      oxlint:
+        specifier: ^1.39.0
+        version: 1.39.0
+      sort-package-json:
+        specifier: ^3.6.0
+        version: 3.6.0
 
   apps/nextjs16-project:
     dependencies:
@@ -48,24 +63,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.8)
-      lefthook:
-        specifier: ^2.0.15
-        version: 2.0.15
       node:
         specifier: runtime:^24.13.0
         version: runtime:24.13.0
-      npm-run-all:
-        specifier: ^4.1.5
-        version: 4.1.5
-      oxfmt:
-        specifier: ^0.24.0
-        version: 0.24.0
-      oxlint:
-        specifier: ^1.39.0
-        version: 1.39.0
-      sort-package-json:
-        specifier: ^3.6.0
-        version: 3.6.0
       tailwindcss:
         specifier: ^4
         version: 4.1.18

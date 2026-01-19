@@ -6,10 +6,6 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "format": "oxfmt",
-    "format:check": "oxfmt --check",
-    "format-rsc": "node scripts/cli.ts",
-    "postinstall": "lefthook install",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "start": "next start"
@@ -28,11 +24,6 @@
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "lefthook": "^2.0.15",
-    "npm-run-all": "^4.1.5",
-    "oxfmt": "^0.24.0",
-    "oxlint": "^1.39.0",
-    "sort-package-json": "^3.6.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.17"
