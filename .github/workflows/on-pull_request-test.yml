@@ -54,7 +54,7 @@ jobs:
       actions: read
     steps:
       - name: Compare Artifacts
-        uses: Himenon/compare-artifact@52f4817
+        uses: Himenon/compare-artifact@52f4817600d37f0cb66790cda2a07afba201c88f
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
