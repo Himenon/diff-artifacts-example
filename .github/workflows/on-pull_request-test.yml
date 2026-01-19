@@ -53,6 +53,11 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
       - name: Compare Artifacts
         uses: Himenon/compare-artifact@52f4817600d37f0cb66790cda2a07afba201c88f
         with:
