@@ -1,1 +1,1 @@
-# Compare Action Example
+# diff-artifacts-example
