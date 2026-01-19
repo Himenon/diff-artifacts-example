@@ -33,4 +33,6 @@ jobs:
       - uses: Himenon/upload-diff-artifact@9934d4914492e79d3b09ca14c054e96c47517609
         with:
           name: build-main
-          path: apps/nextjs16-project/.next
+          path: |
+            apps/nextjs15-project/.next
+            apps/nextjs16-project/.next
