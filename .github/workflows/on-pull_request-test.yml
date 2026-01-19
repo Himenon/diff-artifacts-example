@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha_short: ${{ steps.vars.outputs.sha_short }}
+      sha-short: ${{ steps.vars.outputs.sha-short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -33,16 +33,11 @@ jobs:
           pnpm test
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
-      - name: Set short SHA
+      - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
         id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      - name: "Upload build directory: build-pr-${{ steps.vars.outputs.sha_short }}"
-        uses: actions/upload-artifact@v6
         with:
-          name: build-pr-${{ steps.vars.outputs.sha_short }}
+          name: build-pr
           path: apps/nextjs16-project/.next
-          if-no-files-found: error
-          include-hidden-files: true
 
   diff-artifacts:
     needs: build
@@ -71,12 +66,12 @@ jobs:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          pr-sha: ${{ needs.build.outputs.sha_short }}
+          pr-sha: ${{ needs.build.outputs.sha-short }}
           base-ref: ${{ github.base_ref }}
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
           base-artifact-name: "build-main"
-          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha_short }}"
+          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short }}"
           base-branch-prefix: build-main
           base-artifact-path: ".next-base"
           pr-artifact-path: ".next-pr"
