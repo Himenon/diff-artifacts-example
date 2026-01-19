@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
 
       - name: Compare Artifacts
-        uses: Himenon/compare-artifact@005b8340c03a7c288981b20db46675ac3f718731
+        uses: Himenon/compare-artifact@5e372ae426d5cce5db408c5d0329833ab7bc94f6
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
@@ -69,8 +69,8 @@ jobs:
           diff-viewer-repo: "Himenon/compare-action-diff-viewer"
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
-          base-artifact-name: "build-main-${{ needs.build.outputs.sha_short }}"
-          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha_short }}"
+          base-artifact-name: "build-main"
+          pr-artifact-name: "build-pr"
           base-artifact-path: ".next-base"
           pr-artifact-path: ".next-pr"
           base-workflow-name: "on-push-main.yml"
