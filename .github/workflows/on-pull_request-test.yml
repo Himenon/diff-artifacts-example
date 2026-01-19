@@ -57,6 +57,13 @@ jobs:
       pr_sha: ${{ needs.build.outputs.sha_short }}
       base_ref: ${{ github.base_ref }}
       diff_viewer_repo: "Himenon/compare-action-diff-viewer"
+      diff_viewer_owner: "Himenon"
+      diff_viewer_repo_name: "compare-action-diff-viewer"
+      base_workflow_file: "on-push-main.yml"
+      base_dir: ".next-base"
+      pr_dir: ".next-pr"
+      base_artifact_prefix: "build-main"
+      pr_artifact_prefix: "build-pr"
       gitignore_patterns: |
         node_modules
         cache
