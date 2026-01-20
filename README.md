@@ -30,3 +30,102 @@ const nextConfig = {
 
 export default nextConfig;
 ```
+
+## GitHub Actions
+
+Diff Viewer Repo: <https://github.com/Himenon/diff-artifacts-example-diff-viewer>
+
+### For Pull Requests:
+
+```yaml
+name: Build and Compare Artifacts on Pull Request
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    # ...
+    steps:
+      # some build steps
+      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
+        with:
+          path: |
+            apps/nextjs14-project/.next  
+            apps/nextjs15-project/.next
+            apps/nextjs16-project/.next
+
+  diff-artifacts:
+    needs: build
+    # ...
+    permissions:
+      pull-requests: write
+      contents: read
+      actions: read
+    steps:
+      # Setup for pre-push-shell command
+      - name: Diff Artifacts
+        uses: Himenon/diff-artifact@c712f70b1020a0de2e35714c1e69d24132fc415d
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          diff-viewer-owner: "Himenon"
+          diff-viewer-repo-name: "diff-artifacts-example-diff-viewer"
+          gitignore-patterns: |
+            node_modules
+            cache
+            trace
+            trace-build
+
+          # Needs Setup clone git repository, pnpm and install oxfmt
+          pre-push-shell: "pnpm exec oxfmt"
+```
+
+### After Close PR Events
+
+```yaml
+name: "Close DIFF_VIEWER_REPO PRs on PR close"
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  close-diff-viewer-pr:
+    name: Close diff viewer PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: Himenon/close-diff-artifact-pr@a2dbed3129e26306becce793019c1d77647fe0be
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          diff-viewer-owner: Himenon
+          diff-viewer-repo-name: diff-artifacts-example-diff-viewer
+```
+
+### For Push `main(default)` Branch
+
+```yaml
+name: Build & Push Diff Artifact
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # some build steps ...
+      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
+        with:
+          path: |
+            apps/nextjs14-project/.next
+            apps/nextjs15-project/.next
+            apps/nextjs16-project/.next
+```
