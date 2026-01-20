@@ -32,7 +32,7 @@ jobs:
       - run: pnpm build
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
-      - uses: Himenon/upload-diff-artifact@9934d4914492e79d3b09ca14c054e96c47517609
+      - uses: Himenon/upload-diff-artifact@bbd1d94347ec5d0cc2425d5a33d76c0c23fa0fe1
         with:
           name: build-main
           path: |
