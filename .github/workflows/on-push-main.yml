@@ -34,7 +34,7 @@ jobs:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
       - uses: Himenon/upload-diff-artifact@bbd1d94347ec5d0cc2425d5a33d76c0c23fa0fe1
         with:
-          name: build-main
+          name: custom-build-name
           path: |
             apps/nextjs14-project/.next
             apps/nextjs15-project/.next
