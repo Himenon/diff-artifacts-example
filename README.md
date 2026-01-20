@@ -65,7 +65,7 @@ jobs:
     steps:
       # Setup for pre-push-shell command
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@c712f70b1020a0de2e35714c1e69d24132fc415d
+        uses: Himenon/diff-artifact@110f5f82e26809919a37582e8c0f5be4099524cf
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
