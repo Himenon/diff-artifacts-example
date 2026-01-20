@@ -7,8 +7,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    outputs:
-      sha-short: ${{ steps.vars.outputs.sha-short }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/initialize
@@ -36,7 +34,6 @@ jobs:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
 
       - uses: Himenon/upload-diff-artifact@bbd1d94347ec5d0cc2425d5a33d76c0c23fa0fe1
-        id: vars
         with:
           name: custom-build-name
           path: |
@@ -66,7 +63,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@91dc8827104faa3f0e318f1ae1819a2bdebc2a96
+        uses: Himenon/diff-artifact@aa6dbe64c17dc2233cae7724ae2dc617f05a292f
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
