@@ -66,25 +66,21 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@23e08445ffa42ca8cbb54f9201b68925b7159cbe
+        uses: Himenon/diff-artifact@6cb8ad780fe7514114eba84006403221b0194fe9
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
           pr-sha: ${{ needs.build.outputs.sha-short }}
           base-ref: ${{ github.base_ref }}
+          prefix: custom-build-name
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
-          base-artifact-name: custom-build-name
-          pr-artifact-name: "custom-build-name-${{ needs.build.outputs.sha-short }}"
-          base-branch-prefix: custom-build-name
-          base-artifact-path: ".diff-artifacts/base"
-          pr-artifact-path: ".diff-artifacts/pr"
-          pr-branch-prefix: custom-build-name
+          # base-artifact-path: ".diff-artifacts/base"
+          # pr-artifact-path: ".diff-artifacts/pr"
           gitignore-patterns: |
             node_modules
             cache
             trace
             trace-build
           pre-push-shell: "pnpm exec oxfmt"
-          enable-comment: "true"
