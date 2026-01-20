@@ -16,4 +16,4 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
           diff-viewer-owner: Himenon
-          diff-viewer-repo-name: compare-action-diff-viewer
+          diff-viewer-repo-name: diff-artifacts-example-diff-viewer
