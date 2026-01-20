@@ -33,9 +33,8 @@ jobs:
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
 
-      - uses: Himenon/upload-diff-artifact@bbd1d94347ec5d0cc2425d5a33d76c0c23fa0fe1
+      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
         with:
-          name: custom-build-name
           path: |
             apps/nextjs14-project/.next  
             apps/nextjs15-project/.next
@@ -63,11 +62,10 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@aa6dbe64c17dc2233cae7724ae2dc617f05a292f
+        uses: Himenon/diff-artifact@c712f70b1020a0de2e35714c1e69d24132fc415d
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          prefix: custom-build-name
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
           gitignore-patterns: |
