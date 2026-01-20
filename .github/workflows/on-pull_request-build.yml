@@ -38,7 +38,7 @@ jobs:
       - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
         id: vars
         with:
-          name: build-pr
+          name: build
           path: |
             apps/nextjs14-project/.next  
             apps/nextjs15-project/.next
