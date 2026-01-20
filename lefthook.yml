@@ -2,6 +2,8 @@ pre-commit:
   jobs:
     - name: scripts format
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,yaml,html,css,scss,md,json}"
+      exclude:
+        - "package.json"
       run: pnpm run format
       stage_fixed: true
     - name: sort package json

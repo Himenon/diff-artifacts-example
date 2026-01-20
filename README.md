@@ -48,7 +48,7 @@ jobs:
     # ...
     steps:
       # some build steps
-      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
+      - uses: Himenon/upload-diff-artifact@v1.0.0
         with:
           path: |
             apps/nextjs14-project/.next  
@@ -65,7 +65,7 @@ jobs:
     steps:
       # Setup for pre-push-shell command
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@110f5f82e26809919a37582e8c0f5be4099524cf
+        uses: Himenon/diff-artifact@v1.0.0
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
-      - uses: Himenon/close-diff-artifact-pr@a2dbed3129e26306becce793019c1d77647fe0be
+      - uses: Himenon/close-diff-artifact-pr@v1.0.0
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -122,7 +122,7 @@ jobs:
 
     steps:
       # some build steps ...
-      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
+      - uses: Himenon/upload-diff-artifact@v1.0.0
         with:
           path: |
             apps/nextjs14-project/.next

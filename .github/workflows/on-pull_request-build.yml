@@ -33,7 +33,7 @@ jobs:
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
 
-      - uses: Himenon/upload-diff-artifact@01b6cc722e631f4d071c525ba6b27c9c2b2885e2
+      - uses: Himenon/upload-diff-artifact@v1.0.0
         with:
           path: |
             apps/nextjs14-project/.next  
@@ -62,7 +62,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@d4bea9e7a8be824366e38e966d3d7a0cf22b6cea
+        uses: Himenon/diff-artifact@v1.0.0
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
