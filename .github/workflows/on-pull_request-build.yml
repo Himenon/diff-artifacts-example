@@ -75,12 +75,12 @@ jobs:
           base-ref: ${{ github.base_ref }}
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
-          base-artifact-name: "build-main"
+          base-artifact-name: build
           pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short }}"
-          base-branch-prefix: build-main
+          base-branch-prefix: build
           base-artifact-path: ".diff-artifacts/base"
           pr-artifact-path: ".diff-artifacts/pr"
-          pr-branch-prefix: build-pr
+          pr-branch-prefix: build
           base-workflow-name: "on-push-main.yml"
           gitignore-patterns: |
             node_modules
