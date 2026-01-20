@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
-      - uses: Himenon/diff-artifact/close-pr@2dfc81260ac773fb89e44bb5427c941fa6ffb9d3
+      - uses: Himenon/diff-artifact/close-pr@v1.1.0
         with:
           app-id: ${{ secrets.APP_ID }}
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
