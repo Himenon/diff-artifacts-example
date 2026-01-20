@@ -35,10 +35,10 @@ jobs:
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
 
-      - uses: Himenon/upload-diff-artifact@7f0c38373c7907c7bdeb85b30c49f1b419ee2363
+      - uses: Himenon/upload-diff-artifact@bbd1d94347ec5d0cc2425d5a33d76c0c23fa0fe1
         id: vars
         with:
-          name: build-pr
+          name: custom-build-name
           path: |
             apps/nextjs14-project/.next  
             apps/nextjs15-project/.next
@@ -66,7 +66,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@2927ade4f0d27b4464a5decd147f9ac369e4db1d
+        uses: Himenon/diff-artifact@23e08445ffa42ca8cbb54f9201b68925b7159cbe
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
@@ -75,13 +75,12 @@ jobs:
           base-ref: ${{ github.base_ref }}
           diff-viewer-owner: "Himenon"
           diff-viewer-repo-name: "compare-action-diff-viewer"
-          base-artifact-name: "build-main"
-          pr-artifact-name: "build-pr-${{ needs.build.outputs.sha-short }}"
-          base-branch-prefix: build-main
+          base-artifact-name: custom-build-name
+          pr-artifact-name: "custom-build-name-${{ needs.build.outputs.sha-short }}"
+          base-branch-prefix: custom-build-name
           base-artifact-path: ".diff-artifacts/base"
           pr-artifact-path: ".diff-artifacts/pr"
-          pr-branch-prefix: build-pr
-          base-workflow-name: "on-push-main.yml"
+          pr-branch-prefix: custom-build-name
           gitignore-patterns: |
             node_modules
             cache
