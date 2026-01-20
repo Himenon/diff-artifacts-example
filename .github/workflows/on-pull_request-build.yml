@@ -66,7 +66,7 @@ jobs:
       - run: pnpm i --frozen-lockfile
 
       - name: Diff Artifacts
-        uses: Himenon/diff-artifact@7178aa3f3e19135b0c476d8b3fe5013466f891ad
+        uses: Himenon/diff-artifact@bbdd9b39308943f975e1915d6e8310cb0f2f229f
         with:
           github-token: ${{ github.token }}
           app-id: ${{ secrets.APP_ID }}
