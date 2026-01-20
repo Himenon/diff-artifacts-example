@@ -94,7 +94,7 @@ on:
 jobs:
   close-diff-viewer-pr:
     name: Close diff viewer PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
       - uses: Himenon/close-diff-artifact-pr@a2dbed3129e26306becce793019c1d77647fe0be
