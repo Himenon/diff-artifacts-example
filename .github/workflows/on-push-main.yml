@@ -32,7 +32,7 @@ jobs:
       - run: pnpm build
         env:
           CI_BUILD_ID: FIXED_CI_BUILD_ID
-      - uses: Himenon/upload-diff-artifact@v1.0.0
+      - uses: Himenon/diff-artifact/upload@2dfc81260ac773fb89e44bb5427c941fa6ffb9d3
         with:
           path: |
             apps/nextjs14-project/.next
